@@ -64,8 +64,16 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       nm->mkConst(String(doFull ? "quant-elim" : "quant-elim-partial"));
   Node n_attr = nm->mkNode(INST_ATTRIBUTE, keyword);
   n_attr = nm->mkNode(INST_PATTERN_LIST, n_attr);
+  Trace("smt-qe-debug") << "n_attr : " << n_attr
+                      << std::endl;
   std::vector<Node> children;
   children.push_back(q[0]);
+
+  // Trace("smt-qe") << "kind is " << toString(q.getKind())
+  //               << std::endl;
+  // Trace("smt-qe") << "q[1] is " << q[1]
+  //               << std::endl;
+
   children.push_back(q.getKind() == EXISTS ? q[1] : q[1].negate());
   children.push_back(n_attr);
   Node ne = nm->mkNode(EXISTS, children);
@@ -116,17 +124,22 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       // an internal subsolver (SolverEngine::isInternalSubsolver).
       ret = nm->mkAnd(insts);
       Trace("smt-qe") << "QuantElimSolver returned : " << ret << std::endl;
+      Trace("smt-qe") << "rewritten formula that QuantElimSolver returned : " << rewrite(ret) << std::endl;
       if (q.getKind() == EXISTS)
       {
         ret = rewrite(ret.negate());
+        Trace("smt-qe") << "Negation of previously returned value (query has existential quantifier): " << ret << std::endl;
       }
     }
     else
     {
       ret = nm->mkConst(q.getKind() != EXISTS);
     }
+
     // do extended rewrite to minimize the size of the formula aggressively
+    Trace("smt-qe") << "ret before extendedRewrite: " << ret << std::endl;
     ret = extendedRewrite(ret);
+    Trace("smt-qe") << "ret after extendedRewrite: " << ret << std::endl;
     // if we are not an internal subsolver, convert to witness form, since
     // internally generated skolems should not escape
     if (!isInternalSubsolver)
