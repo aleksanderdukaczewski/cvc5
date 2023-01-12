@@ -296,6 +296,7 @@ void Smt2State::addCoreSymbols()
   addOperator(XOR, "xor");
   addClosureKind(FORALL, "forall");
   addClosureKind(EXISTS, "exists");
+  addClosureKind(EXISTS_EXACTLY, "exists_exactly");
 }
 
 void Smt2State::addOperator(Kind kind, const std::string& name)
@@ -874,6 +875,7 @@ Command* Smt2State::setLogic(std::string name, bool fromCommand)
 
   if (d_logic.isQuantified())
   {
+    Trace("smt-qe") << "The currently considered logic is quantified, adding quantifer operators." << std::endl;
     addQuantifiersOperators();
   }
 

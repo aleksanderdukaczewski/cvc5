@@ -1718,13 +1718,13 @@ bool SolverEngine::getSubsolverSynthSolutions(std::map<Node, Node>& solMap)
   return d_sygusSolver->getSubsolverSynthSolutions(solMap);
 }
 
-Node SolverEngine::getQuantifierElimination(Node q, bool doFull)
+Node SolverEngine::getQuantifierElimination(Node q, bool doFull, bool counted)
 {
   finishInit();
   d_ctxManager->doPendingPops();
   d_ctxManager->notifyCheckSat(true);
   Node result = d_quantElimSolver->getQuantifierElimination(
-      q, doFull, d_isInternalSubsolver);
+      q, doFull, counted, d_isInternalSubsolver);
   d_ctxManager->notifyCheckSatResult(true);
   return result;
 }

@@ -41,6 +41,11 @@ struct QuantifierTypeRule
   static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check);
 };
 
+struct CountedQuantifierTypeRule
+{
+  static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check);
+};
+
 /**
  * Type rule for bound variable lists. Ensures its children are bound variables,
  * and returns the bound variable list type.

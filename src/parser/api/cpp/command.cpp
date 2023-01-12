@@ -1793,23 +1793,28 @@ void GetAbductNextCommand::toStream(std::ostream& out) const
 /* -------------------------------------------------------------------------- */
 
 GetQuantifierEliminationCommand::GetQuantifierEliminationCommand()
-    : d_term(), d_doFull(true)
+    : d_term(), d_doFull(true), d_counted(false)
 {
 }
 GetQuantifierEliminationCommand::GetQuantifierEliminationCommand(
-    const cvc5::Term& term, bool doFull)
-    : d_term(term), d_doFull(doFull)
+    const cvc5::Term& term, bool doFull, bool counted)
+    : d_term(term), d_doFull(doFull), d_counted(counted)
 {
 }
 
 cvc5::Term GetQuantifierEliminationCommand::getTerm() const { return d_term; }
 bool GetQuantifierEliminationCommand::getDoFull() const { return d_doFull; }
+bool GetQuantifierEliminationCommand::getCounted() const { return d_counted; }
 void GetQuantifierEliminationCommand::invoke(cvc5::Solver* solver,
                                              SymbolManager* sm)
 {
   try
   {
-    if (d_doFull)
+    if (d_counted) 
+    {
+      d_result = solver->getCountedQuantifierElimination(d_term);
+    }
+    else if (d_doFull)
     {
       d_result = solver->getQuantifierElimination(d_term);
     }
@@ -1837,13 +1842,13 @@ void GetQuantifierEliminationCommand::printResult(cvc5::Solver* solver,
 
 std::string GetQuantifierEliminationCommand::getCommandName() const
 {
-  return d_doFull ? "get-qe" : "get-qe-disjunct";
+  return d_counted ? "get-qe-counted" : (d_doFull ? "get-qe" : "get-qe-disjunct");
 }
 
 void GetQuantifierEliminationCommand::toStream(std::ostream& out) const
 {
   Printer::getPrinter(out)->toStreamCmdGetQuantifierElimination(
-      out, termToNode(d_term), d_doFull);
+      out, termToNode(d_term), d_doFull, d_counted); 
 }
 
 /* -------------------------------------------------------------------------- */

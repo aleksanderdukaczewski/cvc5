@@ -586,7 +586,7 @@ class CVC5_EXPORT SolverEngine
    * for incrementally computing the result of a
    * quantifier elimination.
    */
-  Node getQuantifierElimination(Node q, bool doFull);
+  Node getQuantifierElimination(Node q, bool doFull, bool counted);
 
   /**
    * This method asks this SMT engine to find an interpolant with respect to

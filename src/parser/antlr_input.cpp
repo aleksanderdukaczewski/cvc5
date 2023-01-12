@@ -504,4 +504,4 @@ void AntlrInput::setAntlr3Parser(pANTLR3_PARSER pParser) {
 }
 
 }  // namespace parser
-}  // namespace cvc5
+}  // namespace cvc

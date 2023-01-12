@@ -1398,6 +1398,7 @@ std::string Smt2Printer::smtKindString(Kind k)
     // quantifiers
     case kind::FORALL: return "forall";
     case kind::EXISTS: return "exists";
+    case kind::EXISTS_EXACTLY: return "exists_exactly";
 
     // HO
     case kind::HO_APPLY: return "@";
@@ -2202,9 +2203,10 @@ void Smt2Printer::toStreamCmdGetAbductNext(std::ostream& out) const
 
 void Smt2Printer::toStreamCmdGetQuantifierElimination(std::ostream& out,
                                                       Node n,
-                                                      bool doFull) const
+                                                      bool doFull,
+                                                      bool counted) const
 {
-  out << '(' << (doFull ? "get-qe" : "get-qe-disjunct") << ' ' << n << ')'
+  out << '(' << (counted ? "get-qe-counted" : (doFull ? "get-qe" : "get-qe-disjunct")) << ' ' << n << ')'
       << std::endl;
 }
 

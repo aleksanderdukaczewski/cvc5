@@ -5339,6 +5339,7 @@ enum Kind : int32_t
    *   - Solver::mkOp(Kind, const std::vector<uint32_t>&) const
    */
   EXISTS,
+  EXISTS_EXACTLY, 
   /**
    * Variable list.
    *
@@ -5588,9 +5589,10 @@ enum Kind : int32_t
    *   - Solver::mkOp(Kind, const std::vector<uint32_t>&) const
    */
   INST_PATTERN_LIST,
-
+  
   /* ----------------------------------------------------------------------- */
-  /** Marks the upper-bound of this enumeration. */
+  /** Marks the upper-bound of this enumeration. */ 
+
   LAST_KIND
 };
 // clang-format on

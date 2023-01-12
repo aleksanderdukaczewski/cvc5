@@ -311,6 +311,8 @@ libcvc5_add_sources(
   smt/optimization_solver.h
   smt/quant_elim_solver.cpp
   smt/quant_elim_solver.h
+  smt/counting_quant_elim_solver.cpp
+  smt/counting_quant_elim_solver.h
   smt/preprocessor.cpp
   smt/preprocessor.h
   smt/preprocess_proof_generator.cpp

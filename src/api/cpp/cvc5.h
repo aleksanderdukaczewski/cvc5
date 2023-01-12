@@ -4436,6 +4436,11 @@ class CVC5_EXPORT Solver
   Term getQuantifierEliminationDisjunct(const Term& q) const;
 
   /**
+   * TO DO
+   */
+  Term getCountedQuantifierElimination(const Term& q) const;
+
+  /**
    * When using separation logic, this sets the location sort and the
    * datatype sort to the given ones. This method should be invoked exactly
    * once, before any separation logic constraints are provided.

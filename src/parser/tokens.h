@@ -110,7 +110,8 @@ enum Token : int
   SYNTH_INV_TOK,
   UNTERMINATED_QUOTED_SYMBOL,
   UNTERMINATED_STRING_LITERAL,
-  NONE
+  NONE,
+  GET_QE_COUNTED_TOK
 };
 
 /** Print a token to the stream, for debugging */

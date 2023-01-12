@@ -904,10 +904,13 @@ extendedCommand[std::unique_ptr<cvc5::parser::Command>* cmd]
     { cmd->reset(new SimplifyCommand(e)); }
   | GET_QE_TOK { PARSER_STATE->checkThatLogicIsSet(); }
     term[e,e2]
-    { cmd->reset(new GetQuantifierEliminationCommand(e, true)); }
+    { cmd->reset(new GetQuantifierEliminationCommand(e, true, false)); }
   | GET_QE_DISJUNCT_TOK { PARSER_STATE->checkThatLogicIsSet(); }
     term[e,e2]
-    { cmd->reset(new GetQuantifierEliminationCommand(e, false)); }
+    { cmd->reset(new GetQuantifierEliminationCommand(e, false, false)); }
+  | GET_QE_COUNTED_TOK { PARSER_STATE->checkThatLogicIsSet(); }
+    term[e,e2]
+    { cmd->reset(new GetQuantifierEliminationCommand(e, false, true)); }
   | GET_ABDUCT_TOK {
       PARSER_STATE->checkThatLogicIsSet();
     }
@@ -1214,6 +1217,23 @@ termNonVariable[cvc5::Term& expr, cvc5::Term& expr2]
       if(! f2.isNull()){
         args.push_back(f2);
       }
+      expr = MK_TERM(kind, args);
+    }
+  | LPAREN_TOK countingQuantOp[kind]
+    {
+      PARSER_STATE->pushScope();
+    }
+    term[f, f2] { args.push_back(f); }
+    boundVarList[bvl]
+    term[f, f2] RPAREN_TOK
+    {
+      args.push_back(bvl);
+
+      PARSER_STATE->popScope();
+      args.push_back(f);
+      if(! f2.isNull()){
+        args.push_back(f2);
+      } 
       expr = MK_TERM(kind, args);
     }
   | LPAREN_TOK SET_COMPREHENSION_TOK
@@ -1708,6 +1728,13 @@ quantOp[cvc5::Kind& kind]
   | FORALL_TOK    { $kind = cvc5::FORALL; }
   ;
 
+countingQuantOp[cvc5::Kind& kind]
+@init {
+  Trace("parser") << "quant: " << AntlrInput::tokenText(LT(1)) << std::endl;
+}
+  : EXISTS_EXACTLY_TOK { $kind = cvc5::EXISTS_EXACTLY; }
+  ;
+
 /**
  * Matches a (possibly undeclared) function symbol (returning the string)
  * @param check what kind of check to do with the symbol
@@ -1989,6 +2016,7 @@ SIMPLIFY_TOK : 'simplify';
 INCLUDE_TOK : 'include';
 GET_QE_TOK : 'get-qe';
 GET_QE_DISJUNCT_TOK : 'get-qe-disjunct';
+GET_QE_COUNTED_TOK : 'get-qe-counted';
 GET_ABDUCT_TOK : 'get-abduct';
 GET_ABDUCT_NEXT_TOK : 'get-abduct-next';
 GET_INTERPOL_TOK : 'get-interpolant';
@@ -2022,6 +2050,7 @@ ATTRIBUTE_QUANTIFIER_ID_TOK : ':qid';
 // operators (NOTE: theory symbols go here)
 EXISTS_TOK        : 'exists';
 FORALL_TOK        : 'forall';
+EXISTS_EXACTLY_TOK : 'exists-exactly';
 
 CHAR_TOK : { PARSER_STATE->isTheoryEnabled(internal::theory::THEORY_STRINGS) }? 'char';
 FMF_CARD_TOK: { !PARSER_STATE->strictModeEnabled() && PARSER_STATE->hasCardinalityConstraints() }? 'fmf.card';

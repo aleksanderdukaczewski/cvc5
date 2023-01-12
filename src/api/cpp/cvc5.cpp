@@ -412,6 +412,7 @@ const static std::unordered_map<Kind, std::pair<internal::Kind, std::string>>
         /* Quantifiers ------------------------------------------------------ */
         KIND_ENUM(FORALL, internal::Kind::FORALL),
         KIND_ENUM(EXISTS, internal::Kind::EXISTS),
+        KIND_ENUM(EXISTS_EXACTLY, internal::Kind::EXISTS_EXACTLY),
         KIND_ENUM(VARIABLE_LIST, internal::Kind::BOUND_VAR_LIST),
         KIND_ENUM(INST_PATTERN, internal::Kind::INST_PATTERN),
         KIND_ENUM(INST_NO_PATTERN, internal::Kind::INST_NO_PATTERN),
@@ -745,6 +746,7 @@ const static std::unordered_map<internal::Kind,
         /* Quantifiers ----------------------------------------------------- */
         {internal::Kind::FORALL, FORALL},
         {internal::Kind::EXISTS, EXISTS},
+        {internal::Kind::EXISTS_EXACTLY, EXISTS_EXACTLY},
         {internal::Kind::BOUND_VAR_LIST, VARIABLE_LIST},
         {internal::Kind::INST_PATTERN, INST_PATTERN},
         {internal::Kind::INST_NO_PATTERN, INST_NO_PATTERN},
@@ -753,6 +755,7 @@ const static std::unordered_map<internal::Kind,
         {internal::Kind::SKOLEM_ADD_TO_POOL, SKOLEM_ADD_TO_POOL},
         {internal::Kind::INST_ATTRIBUTE, INST_ATTRIBUTE},
         {internal::Kind::INST_PATTERN_LIST, INST_PATTERN_LIST},
+        /* Counting quantifiers ----------------------------------------------------- */
         /* ----------------------------------------------------------------- */
         {internal::Kind::LAST_KIND, LAST_KIND},
     };
@@ -7165,7 +7168,7 @@ Term Solver::getQuantifierElimination(const Term& q) const
   CVC5_API_TRY_CATCH_BEGIN;
   CVC5_API_SOLVER_CHECK_TERM(q);
   //////// all checks before this line
-  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), true));
+  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), true, false));
   ////////
   CVC5_API_TRY_CATCH_END;
 }
@@ -7175,7 +7178,17 @@ Term Solver::getQuantifierEliminationDisjunct(const Term& q) const
   CVC5_API_TRY_CATCH_BEGIN;
   CVC5_API_SOLVER_CHECK_TERM(q);
   //////// all checks before this line
-  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), false));
+  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), false, false));
+  ////////
+  CVC5_API_TRY_CATCH_END;
+}
+
+Term Solver::getCountedQuantifierElimination(const Term& q) const
+{
+  CVC5_API_TRY_CATCH_BEGIN;
+  CVC5_API_SOLVER_CHECK_TERM(q);
+  //////// all checks before this line
+  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), true, true));
   ////////
   CVC5_API_TRY_CATCH_END;
 }

@@ -57,6 +57,7 @@ class CVC5_EXPORT ParserException : public internal::Exception
 
   void toStream(std::ostream& os) const override
   {
+    os << "Whoops! Parsing error!" << std::endl;
     if( d_line > 0 ) {
       os <<  "Parse Error: " << d_filename << ":" << d_line << "."
          << d_column << ": " << d_msg;

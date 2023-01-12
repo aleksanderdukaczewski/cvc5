@@ -41,118 +41,143 @@ QuantElimSolver::~QuantElimSolver() {}
 
 Node QuantElimSolver::getQuantifierElimination(Node q,
                                                bool doFull,
+                                               bool counted,
                                                bool isInternalSubsolver)
 {
-  Trace("smt-qe") << "QuantElimSolver: get qe : " << q << std::endl;
-  if (q.getKind() != EXISTS && q.getKind() != FORALL)
-  {
-    throw ModalException(
-        "Expecting a quantified formula as argument to get-qe.");
-  }
   NodeManager* nm = NodeManager::currentNM();
-  // ensure the body is rewritten
-  q = nm->mkNode(q.getKind(), q[0], rewrite(q[1]));
-  // do nested quantifier elimination if necessary
-  q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
-  Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
-                  << q << std::endl;
-  // tag the quantified formula with the quant-elim attribute
-  TypeNode t = nm->booleanType();
-  TheoryEngine* te = d_smtSolver.getTheoryEngine();
-  Assert(te != nullptr);
-  Node keyword =
-      nm->mkConst(String(doFull ? "quant-elim" : "quant-elim-partial"));
-  Node n_attr = nm->mkNode(INST_ATTRIBUTE, keyword);
-  n_attr = nm->mkNode(INST_PATTERN_LIST, n_attr);
-  Trace("smt-qe-debug") << "n_attr : " << n_attr
-                      << std::endl;
-  std::vector<Node> children;
-  children.push_back(q[0]);
 
-  // Trace("smt-qe") << "kind is " << toString(q.getKind())
-  //               << std::endl;
-  // Trace("smt-qe") << "q[1] is " << q[1]
-  //               << std::endl;
+  if (counted) {
+    Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
 
-  children.push_back(q.getKind() == EXISTS ? q[1] : q[1].negate());
-  children.push_back(n_attr);
-  Node ne = nm->mkNode(EXISTS, children);
-  Trace("smt-qe-debug") << "Query for quantifier elimination : " << ne
-                        << std::endl;
-  Assert(ne.getNumChildren() == 3);
-  // use a single call driver
-  SmtDriverSingleCall sdsc(d_env, d_smtSolver);
-  Result r = sdsc.checkSat(std::vector<Node>{ne.notNode()});
-  Trace("smt-qe") << "Query returned " << r << std::endl;
-  if (r.getStatus() != Result::UNSAT)
-  {
-    if (r.getStatus() != Result::SAT && doFull)
+    Trace("smt-qe") <<
+      "Node q: " << q << std::endl << 
+      "Node q's kind: " << q.getKind() << std::endl <<
+      "q[0]: " << q[0] << std::endl <<
+      "q[1]: " << q[1] << std::endl << 
+      "q[2]: " << q[2] << std::endl;
+
+    if (q.getKind() != EXISTS_EXACTLY)
     {
-      verbose(1)
-          << "While performing quantifier elimination, unexpected result : "
-          << r << " for query." << std::endl;
-      // failed, return original
-      return q;
-    }
-    QuantifiersEngine* qe = te->getQuantifiersEngine();
-    // must use original quantified formula to compute QE, which ensures that
-    // e.g. term formula removal is not run on the body. Notice that we assume
-    // that the (single) quantified formula is preprocessed, rewritten
-    // version of the input quantified formula q.
-    std::vector<Node> inst_qs;
-    qe->getInstantiatedQuantifiedFormulas(inst_qs);
-    Node topq;
-    // Find the quantified formula corresponding to the quantifier elimination
-    for (const Node& qinst : inst_qs)
-    {
-      // Should have the same attribute mark as above
-      if (qinst.getNumChildren() == 3 && qinst[2] == n_attr)
-      {
-        topq = qinst;
-        break;
-      }
-    }
-    Node ret;
-    if (!topq.isNull())
-    {
-      Assert(topq.getKind() == FORALL);
-      Trace("smt-qe") << "Get qe based on preprocessed quantified formula "
-                      << topq << std::endl;
-      std::vector<Node> insts;
-      qe->getInstantiations(topq, insts);
-      // note we do not convert to witness form here, since we could be
-      // an internal subsolver (SolverEngine::isInternalSubsolver).
-      ret = nm->mkAnd(insts);
-      Trace("smt-qe") << "QuantElimSolver returned : " << ret << std::endl;
-      Trace("smt-qe") << "rewritten formula that QuantElimSolver returned : " << rewrite(ret) << std::endl;
-      if (q.getKind() == EXISTS)
-      {
-        ret = rewrite(ret.negate());
-        Trace("smt-qe") << "Negation of previously returned value (query has existential quantifier): " << ret << std::endl;
-      }
-    }
-    else
-    {
-      ret = nm->mkConst(q.getKind() != EXISTS);
+      throw ModalException(
+        "Expecting a quantified formula with a counting quantifier as argument to get-qe-counted.");
     }
 
-    // do extended rewrite to minimize the size of the formula aggressively
-    Trace("smt-qe") << "ret before extendedRewrite: " << ret << std::endl;
-    ret = extendedRewrite(ret);
-    Trace("smt-qe") << "ret after extendedRewrite: " << ret << std::endl;
-    // if we are not an internal subsolver, convert to witness form, since
-    // internally generated skolems should not escape
-    if (!isInternalSubsolver)
-    {
-      ret = SkolemManager::getOriginalForm(ret);
-    }
-    // make so that the returned formula does not involve arithmetic subtyping
-    SubtypeElimNodeConverter senc;
-    ret = senc.convert(ret);
-    return ret;
+    return nm->mkConst(true);
   }
-  // otherwise, just true/false
-  return nm->mkConst(q.getKind() == EXISTS);
+  else {
+    Trace("smt-qe") << "QuantElimSolver: get qe : " << q << std::endl;
+    if (q.getKind() != EXISTS && q.getKind() != FORALL)
+    {
+      throw ModalException(
+          "Expecting a quantified formula as argument to get-qe.");
+    }
+    // ensure the body is rewritten
+    q = nm->mkNode(q.getKind(), q[0], rewrite(q[1]));
+    // do nested quantifier elimination if necessary
+    q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
+    Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
+                    << q << std::endl;
+    // tag the quantified formula with the quant-elim attribute
+    TypeNode t = nm->booleanType();
+    TheoryEngine* te = d_smtSolver.getTheoryEngine();
+    Assert(te != nullptr);
+    Node keyword =
+        nm->mkConst(String(doFull ? "quant-elim" : "quant-elim-partial"));
+    Node n_attr = nm->mkNode(INST_ATTRIBUTE, keyword);
+    n_attr = nm->mkNode(INST_PATTERN_LIST, n_attr);
+    Trace("smt-qe-debug") << "n_attr : " << n_attr
+                        << std::endl;
+    std::vector<Node> children;
+    children.push_back(q[0]);
+
+    // Trace("smt-qe") << "kind is " << toString(q.getKind())
+    //               << std::endl;
+    // Trace("smt-qe") << "q[1] is " << q[1]
+    //               << std::endl;
+
+    children.push_back(q.getKind() == EXISTS ? q[1] : q[1].negate());
+    children.push_back(n_attr);
+    Node ne = nm->mkNode(EXISTS, children);
+    Trace("smt-qe-debug") << "Query for quantifier elimination : " << ne
+                          << std::endl;
+    Assert(ne.getNumChildren() == 3);
+    // use a single call driver
+    SmtDriverSingleCall sdsc(d_env, d_smtSolver);
+    Trace("smt-qe") << "Formula for query " << ne << std::endl;
+    Trace("smt-qe") << "Formula after applying notNode() " << ne.notNode() << std::endl;
+    Result r = sdsc.checkSat(std::vector<Node>{ne.notNode()});
+    Trace("smt-qe") << "Query returned " << r << std::endl;
+    if (r.getStatus() != Result::UNSAT)
+    {
+      if (r.getStatus() != Result::SAT && doFull)
+      {
+        verbose(1)
+            << "While performing quantifier elimination, unexpected result : "
+            << r << " for query." << std::endl;
+        // failed, return original
+        return q;
+      }
+      QuantifiersEngine* qe = te->getQuantifiersEngine();
+      // must use original quantified formula to compute QE, which ensures that
+      // e.g. term formula removal is not run on the body. Notice that we assume
+      // that the (single) quantified formula is preprocessed, rewritten
+      // version of the input quantified formula q.
+      std::vector<Node> inst_qs;
+      qe->getInstantiatedQuantifiedFormulas(inst_qs);
+      Node topq;
+      // Find the quantified formula corresponding to the quantifier elimination
+      for (const Node& qinst : inst_qs)
+      {
+        // Should have the same attribute mark as above
+        if (qinst.getNumChildren() == 3 && qinst[2] == n_attr)
+        {
+          topq = qinst;
+          break;
+        }
+      }
+      Node ret;
+      if (!topq.isNull())
+      {
+        Assert(topq.getKind() == FORALL);
+        Trace("smt-qe") << "Get qe based on preprocessed quantified formula "
+                        << topq << std::endl;
+        std::vector<Node> insts;
+        qe->getInstantiations(topq, insts);
+        // note we do not convert to witness form here, since we could be
+        // an internal subsolver (SolverEngine::isInternalSubsolver).
+        ret = nm->mkAnd(insts);
+        Trace("smt-qe") << "QuantElimSolver returned : " << ret << std::endl;
+        Trace("smt-qe") << "rewritten formula that QuantElimSolver returned : " << rewrite(ret) << std::endl;
+        if (q.getKind() == EXISTS)
+        {
+          ret = rewrite(ret.negate());
+          Trace("smt-qe") << "Negation of previously returned value (query has existential quantifier): " << ret << std::endl;
+        }
+      }
+      else
+      {
+        ret = nm->mkConst(q.getKind() != EXISTS);
+      }
+
+      // do extended rewrite to minimize the size of the formula aggressively
+      // Trace("smt-qe") << "ret before extendedRewrite: " << ret << std::endl;
+      ret = extendedRewrite(ret);
+      // Trace("smt-qe") << "ret after extendedRewrite: " << ret << std::endl;
+      
+      // if we are not an internal subsolver, convert to witness form, since
+      // internally generated skolems should not escape
+      if (!isInternalSubsolver)
+      {
+        ret = SkolemManager::getOriginalForm(ret);
+      }
+      // make so that the returned formula does not involve arithmetic subtyping
+      SubtypeElimNodeConverter senc;
+      ret = senc.convert(ret);
+      return ret;
+    }
+    // otherwise, just true/false
+    return nm->mkConst(q.getKind() == EXISTS);
+  }
 }
 
 }  // namespace smt

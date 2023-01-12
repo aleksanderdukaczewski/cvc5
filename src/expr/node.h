@@ -428,7 +428,8 @@ public:
     return getKind() == kind::LAMBDA || getKind() == kind::FORALL
            || getKind() == kind::EXISTS || getKind() == kind::WITNESS
            || getKind() == kind::SET_COMPREHENSION
-           || getKind() == kind::MATCH_BIND_CASE;
+           || getKind() == kind::MATCH_BIND_CASE
+           || getKind() == kind::EXISTS_EXACTLY;
   }
 
   /**
