@@ -62,9 +62,19 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         "Expecting a quantified formula with a counting quantifier as argument to get-qe-counted.");
     }
 
-    return nm->mkConst(true);
+    // ensure the body is rewritten
+    q = nm->mkNode(q.getKind(), q[0], q[1], rewrite(q[2]));
+    // do nested quantifier elimination if necessary (Nested counting quantifier elimination not supported yet.)
+    q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
+    Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
+                    << q << std::endl;
+
+    Trace("smt-qe") << "Rewritten q: " << q << std::endl;
+
+    return q;
   }
-  else {
+  else 
+  {
     Trace("smt-qe") << "QuantElimSolver: get qe : " << q << std::endl;
     if (q.getKind() != EXISTS && q.getKind() != FORALL)
     {

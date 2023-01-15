@@ -62,6 +62,18 @@ class NestedQe
    */
   static bool hasNestedQuantification(Node q);
   /**
+   * TO DO
+   * Get nested counted quantification. Returns true if q has nested counting quantifiers.
+   * Adds each nested quantifier in the body of q to nqs.
+  */
+  static bool getNestedCountedQuantification(Node q, std::unordered_set<Node>& nqs);
+  /**
+   * TO DO
+   * Does quantified formula q have nested counted quantification?
+  */
+  static bool hasNestedCountedQuantification(Node q);
+  /**
+   * (TO DO) Counted quantifiers currently not supported.
    * Do nested quantifier elimination. Returns a formula that is equivalent to
    * q and has no nested quantification. If keepTopLevel is false, then the
    * returned formula is quantifier-free. Otherwise, it is a quantified formula
