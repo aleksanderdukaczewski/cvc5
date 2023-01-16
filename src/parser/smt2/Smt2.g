@@ -904,13 +904,10 @@ extendedCommand[std::unique_ptr<cvc5::parser::Command>* cmd]
     { cmd->reset(new SimplifyCommand(e)); }
   | GET_QE_TOK { PARSER_STATE->checkThatLogicIsSet(); }
     term[e,e2]
-    { cmd->reset(new GetQuantifierEliminationCommand(e, true, false)); }
+    { cmd->reset(new GetQuantifierEliminationCommand(e, true)); }
   | GET_QE_DISJUNCT_TOK { PARSER_STATE->checkThatLogicIsSet(); }
     term[e,e2]
-    { cmd->reset(new GetQuantifierEliminationCommand(e, false, false)); }
-  | GET_QE_COUNTED_TOK { PARSER_STATE->checkThatLogicIsSet(); }
-    term[e,e2]
-    { cmd->reset(new GetQuantifierEliminationCommand(e, false, true)); }
+    { cmd->reset(new GetQuantifierEliminationCommand(e, false)); }
   | GET_ABDUCT_TOK {
       PARSER_STATE->checkThatLogicIsSet();
     }

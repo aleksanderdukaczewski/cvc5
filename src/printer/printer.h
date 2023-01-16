@@ -237,8 +237,7 @@ class CVC5_EXPORT Printer
   /** Print get-quantifier-elimination command */
   virtual void toStreamCmdGetQuantifierElimination(std::ostream& out,
                                                    Node n,
-                                                   bool doFull,
-                                                   bool counted) const;
+                                                   bool doFull) const;
 
   /** Print get-unsat-assumptions command */
   virtual void toStreamCmdGetUnsatAssumptions(std::ostream& out) const;

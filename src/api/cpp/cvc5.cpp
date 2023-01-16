@@ -7168,7 +7168,7 @@ Term Solver::getQuantifierElimination(const Term& q) const
   CVC5_API_TRY_CATCH_BEGIN;
   CVC5_API_SOLVER_CHECK_TERM(q);
   //////// all checks before this line
-  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), true, false));
+  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), true));
   ////////
   CVC5_API_TRY_CATCH_END;
 }
@@ -7178,17 +7178,7 @@ Term Solver::getQuantifierEliminationDisjunct(const Term& q) const
   CVC5_API_TRY_CATCH_BEGIN;
   CVC5_API_SOLVER_CHECK_TERM(q);
   //////// all checks before this line
-  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), false, false));
-  ////////
-  CVC5_API_TRY_CATCH_END;
-}
-
-Term Solver::getCountedQuantifierElimination(const Term& q) const
-{
-  CVC5_API_TRY_CATCH_BEGIN;
-  CVC5_API_SOLVER_CHECK_TERM(q);
-  //////// all checks before this line
-  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), true, true));
+  return Term(d_nm, d_slv->getQuantifierElimination(q.getNode(), false));
   ////////
   CVC5_API_TRY_CATCH_END;
 }

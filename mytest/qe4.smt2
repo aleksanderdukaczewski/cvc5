@@ -1,0 +1,5 @@
+; EXPECT: (not (>= (+ a (* (- 1) b)) 1))
+(set-logic LIA)
+(declare-fun a () Int)
+(declare-fun b () Int)
+(assert (exists ((x Int)) (and (= (mod (* 3 x) 10) 0) (<= x b))))

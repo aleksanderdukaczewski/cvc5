@@ -41,12 +41,11 @@ QuantElimSolver::~QuantElimSolver() {}
 
 Node QuantElimSolver::getQuantifierElimination(Node q,
                                                bool doFull,
-                                               bool counted,
                                                bool isInternalSubsolver)
 {
   NodeManager* nm = NodeManager::currentNM();
 
-  if (counted) {
+  if (q.getKind() == EXISTS_EXACTLY) {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
 
     Trace("smt-qe") <<

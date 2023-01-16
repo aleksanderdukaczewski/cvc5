@@ -203,8 +203,7 @@ class Smt2Printer : public cvc5::internal::Printer
   /** Print get-quantifier-elimination command */
   void toStreamCmdGetQuantifierElimination(std::ostream& out,
                                            Node n,
-                                           bool doFull,
-                                           bool counted) const override;
+                                           bool doFull) const override;
 
   /** Print get-unsat-assumptions command */
   void toStreamCmdGetUnsatAssumptions(std::ostream& out) const override;

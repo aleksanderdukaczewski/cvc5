@@ -991,16 +991,14 @@ class CVC5_EXPORT GetQuantifierEliminationCommand : public Command
  protected:
   cvc5::Term d_term;
   bool d_doFull;
-  bool d_counted;
   cvc5::Term d_result;
 
  public:
   GetQuantifierEliminationCommand();
-  GetQuantifierEliminationCommand(const cvc5::Term& term, bool doFull, bool counted);
+  GetQuantifierEliminationCommand(const cvc5::Term& term, bool doFull);
 
   cvc5::Term getTerm() const;
   bool getDoFull() const;
-  bool getCounted() const;
   void invoke(cvc5::Solver* solver, parser::SymbolManager* sm) override;
   cvc5::Term getResult() const;
   void printResult(cvc5::Solver* solver, std::ostream& out) const override;

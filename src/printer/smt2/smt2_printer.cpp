@@ -2203,10 +2203,9 @@ void Smt2Printer::toStreamCmdGetAbductNext(std::ostream& out) const
 
 void Smt2Printer::toStreamCmdGetQuantifierElimination(std::ostream& out,
                                                       Node n,
-                                                      bool doFull,
-                                                      bool counted) const
+                                                      bool doFull) const
 {
-  out << '(' << (counted ? "get-qe-counted" : (doFull ? "get-qe" : "get-qe-disjunct")) << ' ' << n << ')'
+  out << '(' << (doFull ? "get-qe" : "get-qe-disjunct") << ' ' << n << ')'
       << std::endl;
 }
 
