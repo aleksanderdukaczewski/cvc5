@@ -58,6 +58,7 @@ class BoundVarManager
   Node mkBoundVar(Node n, TypeNode tn)
   {
     T attr;
+    Trace("smt-qe") << "Making a bound variable. " << std::endl;
     if (n.hasAttribute(attr))
     {
       Assert(n.getAttribute(attr).getType() == tn);

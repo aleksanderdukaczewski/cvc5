@@ -22,7 +22,7 @@ class SmtLibLexer(RegexLexer):
         'declare-sort', 'define-const', 'define-fun', 'define-fun-rec',
         'define-funs-rec', 'define-sort', 'echo', 'exit', 'get-abduct',
         'get-abduct-next', 'get-assertions', 'get-assignment', 'get-info',
-        'get-interpolant', 'get-model', 'get-option', 'get-proof', 'get-qe', 'get-qe-counted'
+        'get-interpolant', 'get-model', 'get-option', 'get-proof', 'get-qe', 
         'get-qe-disjunct', 'get-unsat-assumptions', 'get-unsat-core',
         'get-value', 'pop', 'push', 'reset', 'reset-assertions', 'set-info',
         'set-logic', 'set-option',

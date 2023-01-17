@@ -26,6 +26,8 @@
 #include "theory/theory_engine.h"
 #include "util/string.h"
 
+#include "expr/node_algorithm.h"
+
 using namespace cvc5::internal::theory;
 using namespace cvc5::internal::kind;
 
@@ -70,6 +72,10 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
 
     Trace("smt-qe") << "Rewritten q: " << q << std::endl;
 
+    std::unordered_set<Node> s;
+    expr::getFreeVariables(q, s);
+    Trace("smt-qe") << "Subterms of q: " << s << std::endl;
+
     return q;
   }
   else 
@@ -80,6 +86,13 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       throw ModalException(
           "Expecting a quantified formula as argument to get-qe.");
     }
+
+    std::unordered_set<Node> s;
+    expr::getFreeVariables(q, s);
+    Trace("smt-qe") << "Subterms of q: " << s << std::endl;
+
+    return q;
+
     // ensure the body is rewritten
     q = nm->mkNode(q.getKind(), q[0], rewrite(q[1]));
     // do nested quantifier elimination if necessary

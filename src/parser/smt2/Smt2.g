@@ -1220,13 +1220,19 @@ termNonVariable[cvc5::Term& expr, cvc5::Term& expr2]
     {
       PARSER_STATE->pushScope();
     }
-    term[f, f2] { args.push_back(f); }
     boundVarList[bvl]
-    term[f, f2] RPAREN_TOK
-    {
-      args.push_back(bvl);
+    term[f, f2]
+    { 
+      args.push_back(bvl); 
 
       PARSER_STATE->popScope();
+      args.push_back(f);
+      if(! f2.isNull()){
+        args.push_back(f2);
+      } 
+    }
+    term[f, f2] RPAREN_TOK
+    {
       args.push_back(f);
       if(! f2.isNull()){
         args.push_back(f2);
@@ -2013,7 +2019,6 @@ SIMPLIFY_TOK : 'simplify';
 INCLUDE_TOK : 'include';
 GET_QE_TOK : 'get-qe';
 GET_QE_DISJUNCT_TOK : 'get-qe-disjunct';
-GET_QE_COUNTED_TOK : 'get-qe-counted';
 GET_ABDUCT_TOK : 'get-abduct';
 GET_ABDUCT_NEXT_TOK : 'get-abduct-next';
 GET_INTERPOL_TOK : 'get-interpolant';
