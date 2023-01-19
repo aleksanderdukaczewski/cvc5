@@ -2,4 +2,4 @@
 (declare-fun a () Int)
 (declare-fun b () Int)
 (declare-fun x () Int)
-(get-qe (exists-exactly ((x Int)) 15 (and (> x a) (< x b))))
+(get-qe (exists-exactly ((x Int)) 15 (and (> (* 2 x) a) (< x b))))

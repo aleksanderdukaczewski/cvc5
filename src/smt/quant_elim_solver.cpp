@@ -27,6 +27,7 @@
 #include "util/string.h"
 
 #include "expr/node_algorithm.h"
+#include "expr/node_algorithm_qe.h"
 
 using namespace cvc5::internal::theory;
 using namespace cvc5::internal::kind;
@@ -47,7 +48,8 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
 {
   NodeManager* nm = NodeManager::currentNM();
 
-  if (q.getKind() == EXISTS_EXACTLY) {
+  if (q.getKind() == EXISTS_EXACTLY) 
+  {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
 
     Trace("smt-qe") <<
@@ -57,24 +59,17 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       "q[1]: " << q[1] << std::endl << 
       "q[2]: " << q[2] << std::endl;
 
-    if (q.getKind() != EXISTS_EXACTLY)
-    {
-      throw ModalException(
-        "Expecting a quantified formula with a counting quantifier as argument to get-qe-counted.");
-    }
-
     // ensure the body is rewritten
     q = nm->mkNode(q.getKind(), q[0], q[1], rewrite(q[2]));
+    Trace("smt-qe") << "Rewritten q: " << q << std::endl;
+
     // do nested quantifier elimination if necessary (Nested counting quantifier elimination not supported yet.)
     q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
     Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
                     << q << std::endl;
 
-    Trace("smt-qe") << "Rewritten q: " << q << std::endl;
-
-    std::unordered_set<Node> s;
-    expr::getFreeVariables(q, s);
-    Trace("smt-qe") << "Subterms of q: " << s << std::endl;
+    std::string boundVarName = q[0][0].getName();
+    Trace("smt-qe") << "LCM of bound var's coefficients: " << expr::getLcmCoefficients(boundVarName, q) << std::endl;
 
     return q;
   }
@@ -90,8 +85,6 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::unordered_set<Node> s;
     expr::getFreeVariables(q, s);
     Trace("smt-qe") << "Subterms of q: " << s << std::endl;
-
-    return q;
 
     // ensure the body is rewritten
     q = nm->mkNode(q.getKind(), q[0], rewrite(q[1]));
