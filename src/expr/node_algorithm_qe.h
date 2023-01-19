@@ -20,9 +20,12 @@ Node normalise(Node n);
 /**
  * Get set of coefficients of the variable v in term n.
 */
-void getCoefficients(std::string boundVarName, Node n, std::vector<Integer>& s_coefs);
+void getCoefficients(std::string varName, Node n, std::vector<Integer>& s_coefs);
 
-Integer getLcmCoefficients(std::string boundVarName, Node n);
+/**
+ * Calculate the least common multiple of all coefficients of the variable occuring in term n.
+*/
+Integer getLcmCoefficients(std::string varName, Node n);
 
 /**
  * Rewrite inequalities in node n to conjunctions of inequalities containing only '<'

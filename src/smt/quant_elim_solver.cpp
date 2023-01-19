@@ -60,7 +60,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       "q[2]: " << q[2] << std::endl;
 
     // ensure the body is rewritten
-    q = nm->mkNode(q.getKind(), q[0], q[1], rewrite(q[2]));
+    q = nm->mkNode(q.getKind(), q[0], q[1], expr::rewriteIq(q[2]));
     Trace("smt-qe") << "Rewritten q: " << q << std::endl;
 
     // do nested quantifier elimination if necessary (Nested counting quantifier elimination not supported yet.)
