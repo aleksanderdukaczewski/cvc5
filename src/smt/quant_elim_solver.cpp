@@ -67,11 +67,18 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
     Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
                     << q << std::endl;
+    
+    std::unordered_set<TNode> vs;
+    std::unordered_set<Node> syms;
+    expr::getVariables(q,vs);
+    expr::getSymbols(q,syms);
 
-    std::string boundVarName = q[0][0].getName();
-    Trace("smt-qe") << "LCM of bound var's coefficients: " << expr::getLcmCoefficients(boundVarName, q) << std::endl;
+    Trace("smt-qe") << "variables : " << vs << std::endl;
+    Trace("smt-qe") << "symbols: " << syms << std::endl;
 
-    return q;
+    Node phi1 = expr::normalise(q); 
+
+    return phi1;
   }
   else 
   {

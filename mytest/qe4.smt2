@@ -2,4 +2,4 @@
 (set-logic LIA)
 (declare-fun a () Int)
 (declare-fun b () Int)
-(assert (exists ((x Int)) (and (= (mod (* 3 x) 10) 0) (<= x b))))
+(assert (exists ((x Int)) (and (> (* 2 x) a) (< x b))))

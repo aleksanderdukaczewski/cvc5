@@ -20,23 +20,21 @@ Node normalise(Node n);
 /**
  * Get set of coefficients of the variable v in term n.
 */
-void getCoefficients(std::string varName, Node n, std::vector<Integer>& s_coefs);
+void getCoefficients(Node n, Node var_node, std::vector<Integer>& v_coefs);
+
+bool sameVar(Node n, Node m);
+
+Node substituteCoefficients(Node n, Integer k, Integer a, Node var_node);
 
 /**
- * Calculate the least common multiple of all coefficients of the variable occuring in term n.
+ * 
 */
-Integer getLcmCoefficients(std::string varName, Node n);
+Node normaliseCoefficients(Node n, Integer k, Node var_node);
 
 /**
  * Rewrite inequalities in node n to conjunctions of inequalities containing only '<'
 */
 Node rewriteIq(Node n);
-
-/**
- * Convert modulo constraints (of the form a mod q = b mod q)
-*/
-Node simplifyMod();
-
 
 }  // namespace expr
 }  // namespace cvc5::internal
