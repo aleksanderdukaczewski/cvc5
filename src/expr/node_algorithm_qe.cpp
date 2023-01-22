@@ -123,12 +123,6 @@ Node normaliseCoefficients(Node n, Integer k, Node var_node)
    }
 }
 
-Node subdivideFormula(Node n)
-{
-   return n;
-}
-
-
 Node normaliseFormula(Node n)
 {   
    Node bv_node = n[0][0];
@@ -150,6 +144,16 @@ Node normaliseFormula(Node n)
    n = nm->mkNode(n.getKind(), n[0], n[1], expr);
 
    return n;   
+}
+
+Node subdivideFormula(Node n)
+{
+   return n;
+}
+
+Node splitRange(Node n)
+{
+   return n;
 }
 
 Node rewriteIq(Node n)

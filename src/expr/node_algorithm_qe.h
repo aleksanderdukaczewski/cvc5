@@ -13,21 +13,24 @@ namespace cvc5::internal {
 namespace expr {
 
 /**
- * Normalise the formula and make all non-zero coefficients of bound variable either 1 or −1
- * Step 1 of the procedure 
+ * Step I: Normalise the formula and make all non-zero coefficients of bound variable either 1 or −1
 */
 Node normaliseFormula(Node n);
 
 /**
- * Subdivide the formula according to term orderings and residue classes.
- * Step 2 of the procedure
+ * Step II: Subdivide the formula according to term orderings and residue classes.
 */
 Node subdivideFormula(Node n);
 
 /**
+ * Step III: Split the range of y into segments.
+*/
+Node splitRange(Node n);
+
+/**
  * Get set of coefficients of the variable v in term n.
 */
-void getCoefficients(Node n, Node var_node, std::vector<Integer>& v_coefs);
+void getCoefficients(Node n, Node bound_var_node, std::vector<Integer>& v_coefs);
 
 /**
  * Check if two nodes evaluate to the same string representation (== operator implementation on Node only compares NodeValue pointers)
@@ -35,11 +38,20 @@ void getCoefficients(Node n, Node var_node, std::vector<Integer>& v_coefs);
 bool sameVar(Node n, Node m);
 
 /**
- * 
+ * Recursive function that looks for inequalities of
+ * the form t < 0, where the bound variable (from bound_var_node) 
+ * could occur in the lhs. If such inequality is found, then extract 
+ * the coefficient of bound variable and call substituteCoefficients on the LHS.
 */
-Node substituteCoefficients(Node n, Integer k, Integer a, Node var_node);
+Node normaliseCoefficients(Node n, Integer k, Node bound_var_node);
 
-Node normaliseCoefficients(Node n, Integer k, Node var_node);
+/** 
+ * Given a (the local coefficient of bound variable), 
+ * k (the lcm of all coefficients of global variable), 
+ * the original formula n, and the Node with the bound variable
+ * perform transformations as in substep 3 of the procedure 
+*/
+Node substituteCoefficients(Node n, Integer k, Integer a, Node bound_var_node);
 
 /**
  * Rewrite inequalities in node n to 
