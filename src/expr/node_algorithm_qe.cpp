@@ -40,24 +40,31 @@ bool sameVar(Node n1, Node n2)
 
 Node substituteCoefficients(Node n, Integer k, Integer a, Node var_node)
 {
+   NodeManager* nm = NodeManager::currentNM();
    // Found a node that directly references the bound variable
-   if (sameVar(var_node, n)) 
+   if (sameVar(var_node, n) ||
+       // Found a node that is a negation of the bound variable
+       (n.getKind() == NEG && sameVar(var_node, n[0])))
    {
       return n; // found the node referencing the bound variable, leave it as it is
-   }
-   // Found a node that is a negation of the bound variable
-   else if (n.getKind() == NEG && sameVar(var_node, n[0])) 
-   {
-      return n[0];
    }
    // Found a node that is the bound variable with a coefficient
    else if (n.getKind() == MULT && (sameVar(var_node, n[0]) || sameVar(var_node, n[1])))
    {
-      return sameVar(var_node, n[0]) ? n[0] : n[1];  
+      // return sameVar(var_node, n[0]) ? n[0] : n[1];  
+      Node coef_node = sameVar(var_node, n[0]) ? n[1] : n[0];
+      Integer coef_val = coef_node.getConst<Rational>().getNumerator();
+      if (coef_val.strictlyPositive())
+      {
+         return var_node;
+      }
+      else
+      {
+         return nm->mkNode(NEG, var_node);
+      }
    }
    // Found a node that represents a variable or an integent constant
    else if (n.getKind() == VARIABLE || n.getKind() == CONST_INTEGER) {
-      NodeManager* nm = NodeManager::currentNM();
       // if constant equal to zero, return the node as it is
       if (n.getKind() == CONST_INTEGER && n.getConst<Rational>().isZero()) 
       {
@@ -148,6 +155,20 @@ Node normaliseFormula(Node n)
 
 Node subdivideFormula(Node n)
 {
+   std::unordered_set<Node> T;
+   T.insert(NodeManager::currentNM()->mkConstInt(Rational(0)));
+   Node bound_var_node = n[0][0];
+   Node formula_node = n[2];
+
+   Trace("smt-qe") << "bound var: " << bound_var_node << std::endl
+                   << "formula: " << formula_node << std::endl;
+
+   calculateTerms(formula_node, bound_var_node, T);
+
+   Trace("smt-qe") << "Calculated set T: " << T << std::endl;
+
+   std::unordered_set<Node> orderings = getOrderings(T);
+
    return n;
 }
 
@@ -224,9 +245,108 @@ Node rewriteIq(Node n)
    }
 }
 
-void calculateTerms(Node n, std::unordered_set<Node>& s_terms)
-{  
+bool isVarOrNeg(Node n, Node var_node)
+{
+   return sameVar(n, var_node) || (n.getKind() == NEG && sameVar(n[0], var_node));
+}
 
+// bool binopHasVarOrNeg(Node n, Node var_node)
+// {
+//     return (sameVar(n[0], var_node) || sameVar(n[1], var_node))
+//             || (n[0].getKind() == NEG && sameVar(n[0][0], var_node))
+//             || (n[1].getKind() == NEG && sameVar(n[1][0], var_node));
+// }
+
+// TO DO
+Node removeBoundVariable(Node n, Node var_node, bool& negated)
+{
+   // Trace("smt-qe") << "removeBoundVariable: node is " << n << std::endl;
+   if (n.getNumChildren() > 0)
+   {
+      if (n.getKind() == ADD || n.getKind() == SUB || n.getKind() == MULT)
+      {
+         NodeManager* nm = NodeManager::currentNM();
+         if (isVarOrNeg(n[0], var_node) || isVarOrNeg(n[1], var_node))
+         {
+            // Trace("smt-qe") << "removeBoundVariable: binop contains bound variable " << n << std::endl;
+            Node var_term = isVarOrNeg(n[0], var_node) ? n[0] : n[1];
+            Node non_var_term = isVarOrNeg(n[0], var_node) ? n[1] : n[0];
+
+            // Trace("smt-qe") << "var_term: " << var_term << std::endl
+            //                 << "non_var_term: " << non_var_term << std::endl;
+
+            if (var_term.getKind() == NEG) {
+               negated = true;
+            }
+            if (n.getKind() == SUB && isVarOrNeg(n[0], var_node)) 
+            {
+               return nm->mkNode(NEG, removeBoundVariable(n[1], var_node, negated));  
+            }
+            else
+            {
+               return removeBoundVariable(non_var_term, var_node, negated);
+            }
+         }
+         else 
+         {
+            return nm->mkNode(n.getKind(),
+                              removeBoundVariable(n[0], var_node, negated),
+                              removeBoundVariable(n[1], var_node, negated));
+         }
+      }
+      return n;
+   }
+   else
+   {
+      // A leaf node in the AST, CONST_INTEGER or VARIABLE that is 
+      // guaranteed not to be the bound variable or a negation of it
+      // Trace("smt-qe") << "removeBoundVariable: returning leaf " << n << std::endl;
+      return n;
+   }
+}
+
+// TO DO
+void calculateTerms(Node n, Node var_node, std::unordered_set<Node>& s_terms)
+{  
+   // Trace("smt-qe") << "calculateTerms: current node = " << n << std::endl;
+
+   if (n.getKind() == LT) 
+   {
+      Trace("smt-qe") << "calculateTerms: term is of kind LT: " << n << std::endl;
+      NodeManager* nm = NodeManager::currentNM();
+      bool negated = false;
+      Node term = removeBoundVariable(n[0], var_node, negated);
+      if (!negated) {
+         term = nm->mkNode(NEG, term);
+      }
+      Trace("smt-qe") << "calculateTerms: transformed LHS of the inequality : " << term << std::endl;
+      if (term.getKind() == NEG && term[0].getKind() == NEG) 
+      {
+         term = term[0][0];
+      }
+      if (term.getKind() == NEG && term[0].getKind() == SUB)
+      {
+         term = nm->mkNode(SUB, term[0][1], term[0][0]);
+      }
+      s_terms.insert(term);
+   }
+   else
+   {
+      // Trace("smt-qe") << "calculateTerms: term is not LT: " << n << std::endl;
+ 
+      for (int i = 0; i < n.getNumChildren(); ++i)
+      {
+         calculateTerms(n[i], var_node, s_terms);
+      }
+   }
+}
+
+// TO DO
+std::unordered_set<Node> getOrderings(std::unordered_set<Node>& T)
+{
+   std::unordered_set<Node> orderings;
+
+   return orderings;
 }
 
 }  // namespace expr

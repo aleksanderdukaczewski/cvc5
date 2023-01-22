@@ -72,7 +72,11 @@ Node rewriteIq(Node n);
 /**
  * Calculate T (the set of all y-free terms t such that t, y−t or −y+t belongs to lin(n)).
 */
-void calculateTerms(Node n, std::unordered_set<Node>& s_terms);
+void calculateTerms(Node n, Node var_node, std::unordered_set<Node>& s_terms);
+
+Node removeBoundVariable(Node n, Node var_node, bool& negated);
+
+std::unordered_set<Node> getOrderings(std::unordered_set<Node>& T);
 
 }  // namespace expr
 }  // namespace cvc5::internal
