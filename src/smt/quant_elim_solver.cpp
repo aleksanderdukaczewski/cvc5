@@ -52,12 +52,12 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
   {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
 
-    Trace("smt-qe") <<
-      "Node q: " << q << std::endl << 
-      "Node q's kind: " << q.getKind() << std::endl <<
-      "q[0]: " << q[0] << std::endl <<
-      "q[1]: " << q[1] << std::endl << 
-      "q[2]: " << q[2] << std::endl;
+    // Trace("smt-qe") <<
+    //   "Node q: " << q << std::endl << 
+    //   "Node q's kind: " << q.getKind() << std::endl <<
+    //   "q[0]: " << q[0] << std::endl <<
+    //   "q[1]: " << q[1] << std::endl << 
+    //   "q[2]: " << q[2] << std::endl;
 
     // ensure the body is rewritten
     q = nm->mkNode(q.getKind(), q[0], q[1], expr::rewriteIq(q[2]));
@@ -67,18 +67,17 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
     Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
                     << q << std::endl;
-    
-    std::unordered_set<TNode> vs;
-    std::unordered_set<Node> syms;
-    expr::getVariables(q,vs);
-    expr::getSymbols(q,syms);
 
-    Trace("smt-qe") << "variables : " << vs << std::endl;
-    Trace("smt-qe") << "symbols: " << syms << std::endl;
+    q = expr::normaliseFormula(q);
+    Trace("smt-qe") << "QuantElimSolver: after normalising the formula : "
+                    << q << std::endl;
 
-    Node phi1 = expr::normalise(q); 
+    q = expr::subdivideFormula(q);
+    Trace("smt-qe") << "QuantElimSolver: after subdividing the formula : "
+                    << q << std::endl;
 
-    return phi1;
+    Trace("smt-qe") << "Returning the formula" << std::endl;
+    return q;
   }
   else 
   {

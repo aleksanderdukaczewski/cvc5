@@ -13,26 +13,37 @@ namespace cvc5::internal {
 namespace expr {
 
 /**
- * Convert 
+ * Normalise the formula and make all non-zero coefficients of bound variable either 1 or −1
+ * Step 1 of the procedure 
 */
-Node normalise(Node n);
+Node normaliseFormula(Node n);
+
+/**
+ * Subdivide the formula according to term orderings and residue classes.
+ * Step 2 of the procedure
+*/
+Node subdivideFormula(Node n);
 
 /**
  * Get set of coefficients of the variable v in term n.
 */
 void getCoefficients(Node n, Node var_node, std::vector<Integer>& v_coefs);
 
+/**
+ * Check if two nodes evaluate to the same string representation (== operator implementation on Node only compares NodeValue pointers)
+*/
 bool sameVar(Node n, Node m);
-
-Node substituteCoefficients(Node n, Integer k, Integer a, Node var_node);
 
 /**
  * 
 */
+Node substituteCoefficients(Node n, Integer k, Integer a, Node var_node);
+
 Node normaliseCoefficients(Node n, Integer k, Node var_node);
 
 /**
- * Rewrite inequalities in node n to conjunctions of inequalities containing only '<'
+ * Rewrite inequalities in node n to 
+ * conjunctions of inequalities containing only '<'
 */
 Node rewriteIq(Node n);
 

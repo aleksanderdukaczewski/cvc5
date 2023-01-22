@@ -40,39 +40,53 @@ bool sameVar(Node n1, Node n2)
 
 Node substituteCoefficients(Node n, Integer k, Integer a, Node var_node)
 {
-   Trace("smt-qe") << "running substituteCoefficients on n = " << n << std::endl;
-
+   // Found a node that directly references the bound variable
    if (sameVar(var_node, n)) 
    {
       return n; // found the node referencing the bound variable, leave it as it is
    }
+   // Found a node that is a negation of the bound variable
    else if (n.getKind() == NEG && sameVar(var_node, n[0])) 
    {
       return n[0];
    }
+   // Found a node that is the bound variable with a coefficient
    else if (n.getKind() == MULT && (sameVar(var_node, n[0]) || sameVar(var_node, n[1])))
    {
-      Trace("smt-qe") << "Found a node that is the bound variable with a coefficient: " << n << std::endl;
       return sameVar(var_node, n[0]) ? n[0] : n[1];  
    }
-   // TO DO
+   // Found a node that represents a variable or an integent constant
    else if (n.getKind() == VARIABLE || n.getKind() == CONST_INTEGER) {
       NodeManager* nm = NodeManager::currentNM();
-      if (a.strictlyPositive())  
-         return nm->mkNode(MULT, nm->mkConstInt(Rational(k.exactQuotient(a))), n);
-      else
-         return nm->mkNode(MULT, nm->mkConstInt(Rational(k.exactQuotient(-a))), n);
+      // if constant equal to zero, return the node as it is
+      if (n.getKind() == CONST_INTEGER && n.getConst<Rational>().isZero()) 
+      {
+         return n; 
+      }
+      // if a>0: ay+t<0 −> y+(k/a)·t<0
+      else if (a.strictlyPositive()) 
+      {
+         Integer ratio = k.exactQuotient(a);
+         return ratio.isOne() ? n : nm->mkNode(MULT, nm->mkConstInt(Rational(ratio)), n);
+      }
+      // if a<0: ay+t<0 −> −ky−(k/a)·t<0
+      else 
+      {
+         Integer ratio = k.exactQuotient(-a); 
+         return nm->mkNode(MULT, nm->mkConstInt(Rational(ratio)), n);
+      }
    }
+   // For nodes of kinds AND, OR, etc. apply the function to the node's children recursively
    else if (n.getNumChildren() > 0)
    {
-      Trace("smt-qe") << "Running a node builder with the node n = " << n << std::endl;
+      // Trace("smt-qe") << "Running a node builder with the node n = " << n << std::endl;
       NodeBuilder nb(n.getKind());
       for (int i = 0; i < n.getNumChildren(); ++i)
       {
          nb << substituteCoefficients(n[i], k, a, var_node);
       } 
       Node ret = nb;
-      Trace("smt-qe") << "built " << ret << std::endl;
+      // Trace("smt-qe") << "built " << ret << std::endl;
       return ret;
    }
    else {
@@ -82,7 +96,6 @@ Node substituteCoefficients(Node n, Integer k, Integer a, Node var_node)
 
 Node normaliseCoefficients(Node n, Integer k, Node var_node)
 {
-   Trace("smt-qe") << "normaliseCoefficients: currently considered node = " << n << std::endl;
    if (n.getKind() == LT)
    {
       Node lhs = n[0];
@@ -92,7 +105,6 @@ Node normaliseCoefficients(Node n, Integer k, Node var_node)
       if (v_coefs.size() == 1)
       {
          Integer a = v_coefs.at(0);
-         Trace("smt-qe") << "found one coef = " << a.toString() << std::endl;
          return substituteCoefficients(n, k, a, var_node);
       }
       else
@@ -107,25 +119,37 @@ Node normaliseCoefficients(Node n, Integer k, Node var_node)
       {
          nb << normaliseCoefficients(n[i], k, var_node);
       }
-      Trace("smt-qe") << " normaliseCoefficients: returning " << nb << std::endl;
       return nb;
    }
 }
 
-Node normalise(Node n)
+Node subdivideFormula(Node n)
+{
+   return n;
+}
+
+
+Node normaliseFormula(Node n)
 {   
-   std::vector<Integer> v_coefs;
    Node bv_node = n[0][0];
-   
-   Trace("smt-qe") << "going to get coefficients" << std::endl;
+   std::vector<Integer> v_coefs;
    getCoefficients(n, bv_node, v_coefs);
    Integer k(1);
    for (Integer coef : v_coefs)
    {
       k = k.lcm(coef);
    }
-   Trace("smt-qe") << "calculated lcm: " << k.toString() << std::endl;
-   return normaliseCoefficients(n[2], k, bv_node);   
+
+   NodeManager* nm = NodeManager::currentNM();
+   Node expr = nm->mkNode(
+       AND,
+       normaliseCoefficients(n[2], k, bv_node),
+       nm->mkNode(EQUAL,
+                  nm->mkConstInt(Rational(0)),
+                  nm->mkNode(INTS_MODULUS, bv_node, nm->mkConstInt(k))));
+   n = nm->mkNode(n.getKind(), n[0], n[1], expr);
+
+   return n;   
 }
 
 Node rewriteIq(Node n)
