@@ -28,6 +28,16 @@ Node subdivideFormula(Node n);
 Node splitRange(Node n);
 
 /**
+ * Step IV: Compute the number of solutions for each segment.
+*/
+Node computeNumSolutions(Node n);
+
+/**
+ * Step V: Sum up the solutions.
+*/
+Node sumSolutions(Node n);
+
+/**
  * Get set of coefficients of the variable v in term n.
 */
 void getCoefficients(Node n, Node bound_var_node, std::vector<Integer>& v_coefs);
@@ -58,6 +68,11 @@ Node substituteCoefficients(Node n, Integer k, Integer a, Node bound_var_node);
  * conjunctions of inequalities containing only '<'
 */
 Node rewriteIq(Node n);
+
+/**
+ * Calculate T (the set of all y-free terms t such that t, y−t or −y+t belongs to lin(n)).
+*/
+void calculateTerms(Node n, std::unordered_set<Node>& s_terms);
 
 }  // namespace expr
 }  // namespace cvc5::internal

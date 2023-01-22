@@ -156,6 +156,16 @@ Node splitRange(Node n)
    return n;
 }
 
+Node computeNumSolutions(Node n) 
+{
+   return n;
+}
+
+Node sumSolutions(Node n)
+{
+   return n;
+}
+
 Node rewriteIq(Node n)
 {
    NodeManager* nm = NodeManager::currentNM();
@@ -212,6 +222,11 @@ Node rewriteIq(Node n)
              n.getKind(), rewriteIq(n[0]), rewriteIq(n[1]), rewriteIq(n[2]));
       default: return n;
    }
+}
+
+void calculateTerms(Node n, std::unordered_set<Node>& s_terms)
+{  
+
 }
 
 }  // namespace expr

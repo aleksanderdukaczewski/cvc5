@@ -69,14 +69,24 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
                     << q << std::endl;
 
     q = expr::normaliseFormula(q);
-    Trace("smt-qe") << "QuantElimSolver: after normalising the formula : "
-                    << q << std::endl;
+    // Trace("smt-qe") << "QuantElimSolver: after normalising the formula : "
+                    // << q << std::endl;
 
     q = expr::subdivideFormula(q);
     Trace("smt-qe") << "QuantElimSolver: after subdividing the formula : "
                     << q << std::endl;
 
-    Trace("smt-qe") << "Returning the formula" << std::endl;
+    q = expr::splitRange(q);
+    // Trace("smt-qe") << "QuantElimSolver: after splitting the range of the formula : "
+    //                 << q << std::endl;
+
+    q = expr::computeNumSolutions(q);
+    // Trace("smt-qe") << "QuantElimSolver: after computing the number of solutions for each segment in the formula : "
+    //                 << q << std::endl;
+
+    q = expr::sumSolutions(q);
+    // Trace("smt-qe") << "Returning the formula after summing up solutions" << std::endl;
+
     return q;
   }
   else 
