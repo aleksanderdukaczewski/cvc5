@@ -146,11 +146,27 @@ Node normaliseFormula(Node n)
        AND,
        normaliseCoefficients(n[2], k, bv_node),
        nm->mkNode(EQUAL,
-                  nm->mkConstInt(Rational(0)),
-                  nm->mkNode(INTS_MODULUS, bv_node, nm->mkConstInt(k))));
+                  nm->mkNode(INTS_MODULUS, bv_node, nm->mkConstInt(k)),
+                  nm->mkConstInt(Rational(0))));
+
    n = nm->mkNode(n.getKind(), n[0], n[1], expr);
 
    return n;   
+}
+
+void getModuli(Node n, std::vector<Integer>& s_mod)
+{
+   if (n.getKind() == EQUAL && n[1].getKind() == CONST_INTEGER && n[1].getConst<Rational>().isZero() && n[0].getKind() == INTS_MODULUS && n[0][1].getKind() == CONST_INTEGER)
+   {
+      s_mod.push_back(n[0][1].getConst<Rational>().getNumerator());
+   }
+   else if (n.getNumChildren() > 0) 
+   {
+      for (int i = 0; i < n.getNumChildren(); ++i)
+      {
+         getModuli(n[i], s_mod);
+      }
+   }
 }
 
 Node subdivideFormula(Node n)
@@ -168,6 +184,19 @@ Node subdivideFormula(Node n)
    Trace("smt-qe") << "Calculated set T: " << T << std::endl;
 
    std::unordered_set<Node> orderings = getOrderings(T);
+
+   std::unordered_set<Node> Z;
+   getSymbols(n, Z);
+   std::vector<Integer> M;
+   getModuli(n, M);
+
+   Trace("smt-qe") << "Calculated set vars(Phi) = " << Z << std::endl
+                   << "Calculated set mod(Phi1): " << std::endl;
+ 
+   for (Integer& elem : M)
+   {
+      Trace("smt-qe") << elem.toString() << std::endl;
+   }
 
    return n;
 }
@@ -250,13 +279,6 @@ bool isVarOrNeg(Node n, Node var_node)
    return sameVar(n, var_node) || (n.getKind() == NEG && sameVar(n[0], var_node));
 }
 
-// bool binopHasVarOrNeg(Node n, Node var_node)
-// {
-//     return (sameVar(n[0], var_node) || sameVar(n[1], var_node))
-//             || (n[0].getKind() == NEG && sameVar(n[0][0], var_node))
-//             || (n[1].getKind() == NEG && sameVar(n[1][0], var_node));
-// }
-
 // TO DO
 Node removeBoundVariable(Node n, Node var_node, bool& negated)
 {
@@ -333,7 +355,6 @@ void calculateTerms(Node n, Node var_node, std::unordered_set<Node>& s_terms)
    else
    {
       // Trace("smt-qe") << "calculateTerms: term is not LT: " << n << std::endl;
- 
       for (int i = 0; i < n.getNumChildren(); ++i)
       {
          calculateTerms(n[i], var_node, s_terms);
