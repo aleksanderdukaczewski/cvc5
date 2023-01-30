@@ -28,6 +28,7 @@
 
 #include "expr/node_algorithm.h"
 #include "expr/node_algorithm_qe.h"
+#include "expr/ordering_engine.h"
 
 using namespace cvc5::internal::theory;
 using namespace cvc5::internal::kind;
@@ -76,6 +77,12 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     Trace("smt-qe") << "QuantElimSolver: after normalising the formula : " << q
                     << std::endl
                     << "set T: " << T << std::endl;
+
+    SmtDriverSingleCall sdsc(d_env, d_smtSolver);
+    expr::OrderingEngine ordeng(sdsc, T);
+    std::vector<Node> orderings = ordeng.computeOrderings();
+
+    Trace("smt-qe") << "orderings: " << orderings << std::endl;
 
     return q;
   }
