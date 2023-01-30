@@ -15,7 +15,7 @@ namespace expr {
 /**
  * Step I: Normalise the formula and make all non-zero coefficients of bound variable either 1 or −1
 */
-Node normaliseFormula(Node n);
+std::pair<Node, std::vector<Node>> normaliseFormula(Node n);
 
 /**
  * Step II: Subdivide the formula according to term orderings and residue classes.
@@ -53,15 +53,12 @@ bool sameVar(Node n, Node m);
  * could occur in the lhs. If such inequality is found, then extract 
  * the coefficient of bound variable and call substituteCoefficients on the LHS.
 */
-Node normaliseCoefficients(Node n, Integer k, Node bound_var_node);
+Node normaliseCoefficients(Node n,
+                           Node bound_var_node,
+                           Integer k,
+                           std::unordered_set<Node>& T);
 
-/** 
- * Given a (the local coefficient of bound variable), 
- * k (the lcm of all coefficients of global variable), 
- * the original formula n, and the Node with the bound variable
- * perform transformations as in substep 3 of the procedure 
-*/
-Node substituteCoefficients(Node n, Integer k, Integer a, Node bound_var_node);
+Node removeBoundVariable(Node n, Node bound_var, Integer& bound_var_coef);
 
 /**
  * Rewrite inequalities in node n to 

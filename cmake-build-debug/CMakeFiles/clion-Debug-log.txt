@@ -1,0 +1,37 @@
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/Applications/CLion.app/Contents/bin/ninja/mac/ninja -G Ninja -S /Users/alek/Dev/cvc5 -B /Users/alek/Dev/cvc5/cmake-build-debug
+fatal: No names found, cannot describe anything.
+-- Building Debug build
+-- Configuring with C flag '-fno-inline'
+-- Configuring with CXX flag '-fno-inline'
+-- Configuring with C flag '-Og'
+-- Configuring with CXX flag '-Og'
+-- Configuring with C flag '-Wall'
+-- Configuring with CXX flag '-Wall'
+-- Configuring with C flag '-Wno-unused-private-field'
+-- Configuring with CXX flag '-Wno-unused-private-field'
+-- Configuring with C flag '-fexceptions'
+-- Configuring with CXX flag '-Wsuggest-override'
+-- Configuring with CXX flag '-Wnon-virtual-dtor'
+-- Configuring with C flag '-Wimplicit-fallthrough'
+-- Configuring with CXX flag '-Wimplicit-fallthrough'
+-- Configuring with C flag '-Wshadow'
+-- Configuring with CXX flag '-Wshadow'
+-- Found GMP 6.2.1: /opt/homebrew/lib/libgmp.a
+-- Configuring with C flag '-ggdb3'
+-- Configuring with CXX flag '-ggdb3'
+-- Configuring with C flag '-gz'
+-- Configuring with CXX flag '-gz'
+-- Found CaDiCaL 1.5.2
+: /opt/homebrew/lib/libcadical.a
+CMake Error at cmake/deps-helper.cmake:66 (message):
+  Could not find the required dependency SymFPU in the system.  Please
+  install it yourself or use --auto-download to let us download and build it
+  for you.
+Call Stack (most recent call first):
+  cmake/FindSymFPU.cmake:29 (check_auto_download)
+  CMakeLists.txt:458 (find_package)
+
+
+-- Configuring incomplete, errors occurred!
+See also "/Users/alek/Dev/cvc5/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/Users/alek/Dev/cvc5/cmake-build-debug/CMakeFiles/CMakeError.log".

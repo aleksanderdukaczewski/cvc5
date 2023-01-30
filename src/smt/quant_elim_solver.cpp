@@ -48,44 +48,34 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
 {
   NodeManager* nm = NodeManager::currentNM();
 
-  if (q.getKind() == EXISTS_EXACTLY) 
+  if (q.getKind() == EXISTS_EXACTLY)
   {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
 
     // Trace("smt-qe") <<
-    //   "Node q: " << q << std::endl << 
+    //   "Node q: " << q << std::endl <<
     //   "Node q's kind: " << q.getKind() << std::endl <<
     //   "q[0]: " << q[0] << std::endl <<
-    //   "q[1]: " << q[1] << std::endl << 
+    //   "q[1]: " << q[1] << std::endl <<
     //   "q[2]: " << q[2] << std::endl;
 
     // ensure the body is rewritten
     q = nm->mkNode(q.getKind(), q[0], q[1], expr::rewriteIq(q[2]));
     Trace("smt-qe") << "Rewritten q: " << q << std::endl;
 
-    // do nested quantifier elimination if necessary (Nested counting quantifier elimination not supported yet.)
+    // do nested quantifier elimination if necessary (Nested counting quantifier
+    // elimination not supported yet.)
     q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
     Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
                     << q << std::endl;
 
-    q = expr::normaliseFormula(q);
-    // Trace("smt-qe") << "QuantElimSolver: after normalising the formula : "
-                    // << q << std::endl;
+    std::pair<Node, std::vector<Node>> p = expr::normaliseFormula(q);
+    q = p.first;
+    std::vector<Node> T = p.second;
 
-    q = expr::subdivideFormula(q);
-    Trace("smt-qe") << "QuantElimSolver: after subdividing the formula : "
-                    << q << std::endl;
-
-    q = expr::splitRange(q);
-    // Trace("smt-qe") << "QuantElimSolver: after splitting the range of the formula : "
-    //                 << q << std::endl;
-
-    q = expr::computeNumSolutions(q);
-    // Trace("smt-qe") << "QuantElimSolver: after computing the number of solutions for each segment in the formula : "
-    //                 << q << std::endl;
-
-    q = expr::sumSolutions(q);
-    // Trace("smt-qe") << "Returning the formula after summing up solutions" << std::endl;
+    Trace("smt-qe") << "QuantElimSolver: after normalising the formula : " << q
+                    << std::endl
+                    << "set T: " << T << std::endl;
 
     return q;
   }
