@@ -21,7 +21,8 @@ namespace quantifiers {
 
 TypeNode QuantifierTypeRule::computeType(NodeManager* nodeManager,
                                          TNode n,
-                                         bool check)
+                                         bool check,
+                                         std::ostream* errOut)
 {
   Trace("typecheck-q") << "type check for fa " << n << std::endl;
   Assert((n.getKind() == kind::FORALL || n.getKind() == kind::EXISTS)
@@ -75,7 +76,8 @@ TypeNode CountedQuantifierTypeRule::computeType(NodeManager* nodeManager,
 
 TypeNode QuantifierBoundVarListTypeRule::computeType(NodeManager* nodeManager,
                                                      TNode n,
-                                                     bool check)
+                                                     bool check,
+                                                     std::ostream* errOut)
 {
   Assert(n.getKind() == kind::BOUND_VAR_LIST);
   if (check)
@@ -94,7 +96,8 @@ TypeNode QuantifierBoundVarListTypeRule::computeType(NodeManager* nodeManager,
 
 TypeNode QuantifierInstPatternTypeRule::computeType(NodeManager* nodeManager,
                                                     TNode n,
-                                                    bool check)
+                                                    bool check,
+                                                    std::ostream* errOut)
 {
   Assert(n.getKind() == kind::INST_PATTERN);
   if (check)
@@ -114,7 +117,8 @@ TypeNode QuantifierInstPatternTypeRule::computeType(NodeManager* nodeManager,
 
 TypeNode QuantifierAnnotationTypeRule::computeType(NodeManager* nodeManager,
                                                    TNode n,
-                                                   bool check)
+                                                   bool check,
+                                                   std::ostream* errOut)
 {
   if (n.getKind() == kind::INST_ATTRIBUTE)
   {
@@ -132,7 +136,7 @@ TypeNode QuantifierAnnotationTypeRule::computeType(NodeManager* nodeManager,
 }
 
 TypeNode QuantifierInstPatternListTypeRule::computeType(
-    NodeManager* nodeManager, TNode n, bool check)
+    NodeManager* nodeManager, TNode n, bool check, std::ostream* errOut)
 {
   Assert(n.getKind() == kind::INST_PATTERN_LIST);
   if (check)
@@ -154,7 +158,7 @@ TypeNode QuantifierInstPatternListTypeRule::computeType(
   return nodeManager->instPatternListType();
 }
 TypeNode QuantifierOracleFormulaGenTypeRule::computeType(
-    NodeManager* nodeManager, TNode n, bool check)
+    NodeManager* nodeManager, TNode n, bool check, std::ostream* errOut)
 {
   Assert(n.getKind() == kind::ORACLE_FORMULA_GEN);
   if (check)
