@@ -42,10 +42,9 @@ Node normaliseCoefficients(Node n,
                            std::vector<Node>& T)
 {
   Trace("smt-qe") << "normaliseCoefficients: running on n = " << n << std::endl;
-
+  NodeManager* nm = NodeManager::currentNM();
   if (n.getKind() == LT)
   {
-    NodeManager* nm = NodeManager::currentNM();
     Integer a = Integer(0);
     Node bv_free_n = removeBoundVariable(n[0], bound_var_node, a);
     if (a.isZero())
@@ -61,9 +60,11 @@ Node normaliseCoefficients(Node n,
     }
     T.push_back(nm->mkNode(NEG, bv_free_n));
 
-    return a.strictlyPositive()
+    Node lhs = a.strictlyPositive()
                ? nm->mkNode(ADD, bound_var_node, bv_free_n)
                : nm->mkNode(SUB, nm->mkNode(NEG, bound_var_node), bv_free_n);
+
+    return nm->mkNode(LT, lhs, nm->mkConstInt(Rational(0)));
   }
   else
   {
@@ -72,6 +73,7 @@ Node normaliseCoefficients(Node n,
     {
       nb << normaliseCoefficients(n[i], bound_var_node, k, T);
     }
+
     return nb;
   }
 }
@@ -235,6 +237,8 @@ Integer getCoefficient(Node n, Node bound_var)
 
 Node removeBoundVariable(Node n, Node bound_var, Integer& bound_var_coef)
 {
+  Trace("smt-qe") << "removeBoundVariable: running on node : " << n << std::endl;
+
   if (n.getNumChildren() > 0)
   {
     if (n.getKind() == ADD || n.getKind() == SUB || n.getKind() == MULT

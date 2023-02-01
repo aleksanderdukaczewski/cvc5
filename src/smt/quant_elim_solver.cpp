@@ -74,15 +74,18 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     q = p.first;
     std::vector<Node> T = p.second;
 
+    for (int i = 0; i < T.size(); ++i)
+    {
+      T[i] = rewrite(T[i]);
+    }
+
     Trace("smt-qe") << "QuantElimSolver: after normalising the formula : " << q
                     << std::endl
                     << "set T: " << T << std::endl;
 
-    SmtDriverSingleCall sdsc(d_env, d_smtSolver);
-    expr::OrderingEngine ordeng(sdsc, T);
-    std::vector<Node> orderings = ordeng.computeOrderings();
-
-    Trace("smt-qe") << "orderings: " << orderings << std::endl;
+    expr::OrderingEngine ordEng(T);
+    std::vector<expr::Ordering> orderings = ordEng.computeOrderings();
+    Trace("smt-qe") << "orderings: " << ordEng.familyToNodes(orderings) << std::endl;
 
     return q;
   }

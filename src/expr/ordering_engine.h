@@ -10,34 +10,34 @@
 #include "expr/node.h"
 #include "smt/smt_driver.h"
 
+using namespace cvc5::internal::kind;
+
 namespace cvc5::internal {
 namespace expr {
 
 struct Ordering
 {
-  std::vector<Node> terms_v;
-  std::vector<kind::Kind_t> rels_v;
+  std::vector<Node> terms;
+  std::vector<Kind_t> rels;
 };
 
 class OrderingEngine
 {
  public:
-  OrderingEngine(smt::SmtDriverSingleCall& sdcs, std::vector<Node> T);
-
+  OrderingEngine(std::vector<Node> terms);
   ~OrderingEngine();
 
-  std::vector<Node> computeOrderings();
+  std::vector<Ordering> computeOrderings();
+  std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
+  Node orderingToNode(Ordering& ord);
+  std::vector<Node> getSegments(Node bound_var, Ordering ord);
 
  private:
   std::vector<Ordering> computeFamily(int j, std::vector<Ordering>& fam);
-  Node orderingToNode(Ordering& ord);
-  std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
   bool satisfiableOrdering(Ordering& ord);
 
-  smt::SmtDriverSingleCall& d_sdsc;
   std::vector<Node> d_terms;
 };
-
 
 }  // namespace expr
 }  // namespace cvc5::internal
