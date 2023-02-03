@@ -73,6 +73,8 @@ void calculateTerms(Node n, Node var_node, std::unordered_set<Node>& s_terms);
 
 Node removeBoundVariable(Node n, Node var_node, bool& negated);
 
+void getModuli(Node n, std::vector<Integer>& s_mod);
+
 std::unordered_set<Node> getOrderings(std::unordered_set<Node>& T);
 
 }  // namespace expr

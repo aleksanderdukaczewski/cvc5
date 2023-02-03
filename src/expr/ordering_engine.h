@@ -26,15 +26,26 @@ class OrderingEngine
  public:
   OrderingEngine(std::vector<Node> terms);
   ~OrderingEngine();
+  std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
 
   std::vector<Ordering> computeOrderings();
-  std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
-  Node orderingToNode(Ordering& ord);
-  std::vector<Node> getSegments(Node bound_var, Ordering ord);
+  std::vector<Node> getSegments(Node& bound_var, Ordering& ord);
+  std::vector<std::unordered_map<std::string, Node>>
+  generateResidueClassMappings(
+      int range, std::vector<Node>& variables);
+  Node assignResidueClass(Ordering ord, std::unordered_map<std::string, Node> assignment, std::vector<Node> variables, Integer m);
 
  private:
   std::vector<Ordering> computeFamily(int j, std::vector<Ordering>& fam);
   bool satisfiableOrdering(Ordering& ord);
+  Node orderingToNode(Ordering& ord);
+  void getCombinationsRec(
+      std::vector<int> assignment,
+      std::vector<std::vector<int>>& combinations,
+      int index,
+      int r,
+      int start,
+      int end);
 
   std::vector<Node> d_terms;
 };

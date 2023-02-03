@@ -46,7 +46,10 @@ struct QuantifierTypeRule
 
 struct CountedQuantifierTypeRule
 {
-  static TypeNode computeType(NodeManager* nodeManager, TNode n, bool check);
+  static TypeNode computeType(NodeManager* nodeManager,
+                              TNode n,
+                              bool check,
+                              std::ostream* errOut);
 };
 
 /**

@@ -66,7 +66,8 @@ TypeNode QuantifierTypeRule::computeType(NodeManager* nodeManager,
 
 TypeNode CountedQuantifierTypeRule::computeType(NodeManager* nodeManager,
                                                      TNode n,
-                                                     bool check)
+                                                     bool check,
+                                                     std::ostream* errOut)
 {
   Trace("typecheck-q") << "type check for fa " << n << std::endl;
   Assert(n.getKind() == kind::EXISTS_EXACTLY && n.getNumChildren() > 0);

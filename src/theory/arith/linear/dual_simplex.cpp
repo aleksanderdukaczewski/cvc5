@@ -173,7 +173,7 @@ bool DualSimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingI
     LinearEqualityModule::VarPreferenceFunction pf = useVarOrderPivot ?
       &LinearEqualityModule::minVarOrder : &LinearEqualityModule::minBoundAndColLength;
 
-    //DeltaRational beta_i = d_variables.getAssignment(x_i);
+    //DeltaRational beta_i = d_variables.getCombinationsRec(x_i);
     ArithVar x_j = ARITHVAR_SENTINEL;
 
     int32_t prevErrorSize CVC5_UNUSED = d_errorSet.errorSize();

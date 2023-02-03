@@ -297,7 +297,7 @@ public:
 
   /**
    * If lowerbound > - \infty:
-   *   return getAssignment(x).cmp(getLowerBound(x))
+   *   return getCombinationsRec(x).cmp(getLowerBound(x))
    * If lowerbound = - \infty:
    *   return 1
    */
@@ -319,7 +319,7 @@ public:
   }
   /**
    * If upperbound < \infty:
-   *   return getAssignment(x).cmp(getUpperBound(x))
+   *   return getCombinationsRec(x).cmp(getUpperBound(x))
    * If upperbound = \infty:
    *   return -1
    */

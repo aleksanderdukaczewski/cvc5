@@ -85,7 +85,36 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
 
     expr::OrderingEngine ordEng(T);
     std::vector<expr::Ordering> orderings = ordEng.computeOrderings();
-    Trace("smt-qe") << "orderings: " << ordEng.familyToNodes(orderings) << std::endl;
+    Trace("smt-qe") << "orderings: " << ordEng.familyToNodes(orderings)
+                    << std::endl;
+    std::unordered_set<Node> Z;
+    expr::getSymbols(q, Z);
+    Trace("smt-qe") << "symbols: " << Z << std::endl;
+    std::vector<Integer> moduli;
+    expr::getModuli(q, moduli);
+    Integer m = Integer(1);
+    for (Integer mod : moduli)
+    {
+      m = m.lcm(mod);
+    }
+
+    std::vector<Node> Z_vect;
+    std::copy(Z.begin(), Z.end(), std::back_inserter(Z_vect));
+
+    std::vector<std::unordered_map<std::string, Node>> mappings =
+        ordEng.generateResidueClassMappings(3, Z_vect);
+
+    //    Trace("smt-qe") << "GENERATED ASSIGNMENTS:" << std::endl;
+    //
+    //    for (auto& assignment : mappings)
+    //    {
+    //      Trace("smt-qe") << assignment << std::endl;
+    //    }
+
+    Trace("smt-qe") << "Big Gamma: "
+                    << ordEng.assignResidueClass(
+                           orderings.at(0), mappings.at(0), Z_vect, m)
+                    << std::endl;
 
     return q;
   }
