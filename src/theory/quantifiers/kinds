@@ -17,6 +17,8 @@ operator EXISTS 2:3 "existentially quantified formula; first parameter is an BOU
 
 operator EXISTS_EXACTLY 3:4 "existentially quantifier formula using the Hartig quantifier; first parameter is cardinality of the set of satisfying assignments, second parameter is a BOUND_VAR_LIST, third is quantifier body, and an optional third parameter is an INST_PATTERN_LIST"
 
+operator QE_SEGMENT 2:2 "Wrapper for a segment of an expression of a counting quantifier."
+
 variable INST_CONSTANT "instantiation constant"
 
 variable ORACLE "oracle"
@@ -56,6 +58,7 @@ operator INST_PATTERN_LIST 1: "a list of instantiation patterns"
 typerule FORALL ::cvc5::internal::theory::quantifiers::QuantifierTypeRule
 typerule EXISTS ::cvc5::internal::theory::quantifiers::QuantifierTypeRule
 typerule EXISTS_EXACTLY ::cvc5::internal::theory::quantifiers::CountedQuantifierTypeRule
+typerule QE_SEGMENT ::cvc5::internal::theory::quantifiers::QeSegmentTypeRule
 typerule BOUND_VAR_LIST ::cvc5::internal::theory::quantifiers::QuantifierBoundVarListTypeRule
 typerule INST_PATTERN_LIST ::cvc5::internal::theory::quantifiers::QuantifierInstPatternListTypeRule
 typerule ORACLE_FORMULA_GEN ::cvc5::internal::theory::quantifiers::QuantifierOracleFormulaGenTypeRule

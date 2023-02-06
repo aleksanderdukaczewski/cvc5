@@ -53,18 +53,26 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
   {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
 
-    // Trace("smt-qe") <<
-    //   "Node q: " << q << std::endl <<
-    //   "Node q's kind: " << q.getKind() << std::endl <<
-    //   "q[0]: " << q[0] << std::endl <<
-    //   "q[1]: " << q[1] << std::endl <<
-    //   "q[2]: " << q[2] << std::endl;
-
+     Trace("smt-qe") <<
+       "Node q: " << q <<  " of kind " << q.getKind() << std::endl <<
+       "q[0]: " << q[0] <<  " of kind " << q[0].getKind() << std::endl <<
+       "q[0][0]: " << q[0][0] << " of kind " << q[0][0].getKind() << std::endl <<
+       "q[1]: " << q[1] << " of kind " << q[1].getKind() << std::endl <<
+        "q[2][0][0][1]: " << q[2][0][0][1] << " of kind " << q[2][0][0][1].getKind() << std::endl <<
+        "q[2]: " << q[2] << " of kind " << q[2].getKind() << std::endl <<
+        "q[0][0] == q[2][0][0][1]: " << (q[0][0] == q[2][0][0][1]) << std::endl <<
+        "q[2][1][0]: " << q[2][1][0] << " of kind: " << q[2][1][0].getKind() << std::endl <<
+       "q[0][0] == q[2][1][0]: " << (q[0][0] == q[2][1][0]) << std::endl;
     // ensure the body is rewritten
     q = nm->mkNode(q.getKind(), q[0], q[1], expr::rewriteIq(q[2]));
     Trace("smt-qe") << "Rewritten q: " << q << std::endl;
 
-    // do nested quantifier elimination if necessary (Nested counting quantifier
+    std::unordered_set<Node> fvs_expr, fvs;
+    expr::getFreeVariables(q, fvs);
+    expr::getFreeVariables(q[2], fvs_expr);
+    Trace("smt-qe") << "fvs_expr: " << fvs_expr << std::endl << "fvs: " << fvs << std::endl;
+
+        // do nested quantifier elimination if necessary (Nested counting quantifier
     // elimination not supported yet.)
     q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
     Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
@@ -87,6 +95,24 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::vector<expr::Ordering> orderings = ordEng.computeOrderings();
     Trace("smt-qe") << "orderings: " << ordEng.familyToNodes(orderings)
                     << std::endl;
+
+    //    Trace("smt-qe") << "ENUMERATING GENERATED ORDERINGS:" << std::endl;
+    //    for (int i = 0; i < orderings.size(); ++i)
+    //    {
+    //      Node ordNode = ordEng.orderingToNode(orderings[i]);
+    //      Trace("smt-qe") << "Ordering no." << i+1 << " = " << ordNode << "of
+    //      kind = " << ordNode.getKind() << std::endl
+    //                      << "Rewritten no." << i+1 << " = " <<
+    //                      rewrite(ordNode) << std::endl;
+    //
+    //      Trace("smt-qe") << "ordNode's children:" << std::endl;
+    //      for (int j = 0; j < ordNode.getNumChildren(); ++j)
+    //      {
+    //        Trace("smt-qe") << "child no." << j+1 << ": " << ordNode[j] <<
+    //        std::endl;
+    //      }
+    //    }
+
     std::unordered_set<Node> Z;
     expr::getSymbols(q, Z);
     Trace("smt-qe") << "symbols: " << Z << std::endl;
@@ -104,17 +130,33 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::vector<std::unordered_map<std::string, Node>> mappings =
         ordEng.generateResidueClassMappings(3, Z_vect);
 
-    //    Trace("smt-qe") << "GENERATED ASSIGNMENTS:" << std::endl;
-    //
-    //    for (auto& assignment : mappings)
-    //    {
-    //      Trace("smt-qe") << assignment << std::endl;
-    //    }
-
     Trace("smt-qe") << "Big Gamma: "
                     << ordEng.assignResidueClass(
-                           orderings.at(0), mappings.at(0), Z_vect, m)
+                           orderings.at(2), mappings.at(0), Z_vect, m)
                     << std::endl;
+
+    Node bound_var = nm->mkBoundVar(q[0][0].toString(), nm->integerType());
+//    Node var_node = nm->mkVar(bound_var.toString(), nm->integerType());
+    std::vector<Node> segments = ordEng.getSegments(bound_var, orderings.at(2));
+
+    Trace("smt-qe") << "COMPUTED SEGMENTS: " << segments << std::endl;
+
+    ordEng.evaluateOrdering(q, orderings.at(0), segments.at(0), mappings.at(0), Z_vect, m);
+
+    std::vector<Node> evaluatedOrderings;
+
+    for (auto& assignment : mappings)
+    {
+      for (auto& ord : orderings)
+      {
+        for (auto& seg : segments)
+        {
+          evaluatedOrderings.push_back(ordEng.evaluateOrdering(q, ord, seg, assignment, Z_vect, m));
+        }
+      }
+    }
+
+    Trace("smt-qe") << "QuantElimSolver: evaluated orderings: " << evaluatedOrderings << std::endl;
 
     return q;
   }
@@ -126,6 +168,13 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       throw ModalException(
           "Expecting a quantified formula as argument to get-qe.");
     }
+
+    Trace("smt-qe") << "q[0] = " << q[0] << " of kind = " << q[0].getKind() << std::endl
+                    << "q[0][0] = " << q[0][0] << " of kind = " << q[0][0].getKind() << std::endl
+//                    << "q[0][1] = " << q[0][1] << " of kind = " << q[0][1].getKind() << std::endl
+                    << "q[1] = " << q[1] << " of kind = " << q[1].getKind() << std::endl;
+
+
 
     std::unordered_set<Node> s;
     expr::getFreeVariables(q, s);

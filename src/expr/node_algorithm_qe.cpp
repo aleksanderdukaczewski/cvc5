@@ -81,6 +81,7 @@ Node normaliseCoefficients(Node n,
 std::pair<Node, std::vector<Node>> normaliseFormula(Node n)
 {
   Node bound_var_node = n[0][0];
+  Trace("smt-qe") << "normaliseFormula: bound_var_node == n[0][0]: " << (bound_var_node == n[0][0]) << std::endl;
   std::vector<Integer> v_coefs;
   getCoefficients(n, bound_var_node, v_coefs);
   Integer k(1);

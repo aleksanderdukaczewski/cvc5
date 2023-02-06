@@ -115,7 +115,7 @@
     "REAL" "INT" "BOOLEAN" "ARRAY" "OF"
     "TRUE" "FALSE" "FLOOR"
     "IF" "THEN" "ELSIF" "ELSE" "ENDIF" "LET" "IN" "END" "LAMBDA" "WITH"
-    "FORALL" "EXISTS" "EXISTS_EXACTLY" 
+    "FORALL" "EXISTS" "EXISTS_EXACTLY" "QE_SEGMENT"
     "AND" "OR" "XOR" "NOT" )
   "The list of CVC keywords.")
 

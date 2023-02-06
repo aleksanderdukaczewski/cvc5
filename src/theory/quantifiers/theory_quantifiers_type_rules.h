@@ -52,6 +52,14 @@ struct CountedQuantifierTypeRule
                               std::ostream* errOut);
 };
 
+struct QeSegmentTypeRule
+{
+  static TypeNode computeType(NodeManager* nodeManager,
+                              TNode n,
+                              bool check,
+                              std::ostream* errOut);
+};
+
 /**
  * Type rule for bound variable lists. Ensures its children are bound variables,
  * and returns the bound variable list type.

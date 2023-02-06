@@ -75,6 +75,17 @@ TypeNode CountedQuantifierTypeRule::computeType(NodeManager* nodeManager,
   return nodeManager->booleanType();
 }
 
+TypeNode QeSegmentTypeRule::computeType(NodeManager* nodeManager,
+                                                TNode n,
+                                                bool check,
+                                                std::ostream* errOut)
+{
+  Trace("typecheck-q") << "type check for qe_segment " << n << std::endl;
+  Assert(n.getKind() == kind::QE_SEGMENT && n.getNumChildren() > 0);
+
+  return nodeManager->booleanType();
+}
+
 TypeNode QuantifierBoundVarListTypeRule::computeType(NodeManager* nodeManager,
                                                      TNode n,
                                                      bool check,

@@ -1195,6 +1195,15 @@ const Options& SolverEngine::options() const { return d_env->getOptions(); }
 void SolverEngine::ensureWellFormedTerm(const Node& n,
                                         const std::string& src) const
 {
+  std::unordered_set<TNode> scope;
+  ensureWellFormedTerm(n,src,scope);
+}
+
+void SolverEngine::ensureWellFormedTerm(const Node& n,
+                                        const std::string& src,
+                                        std::unordered_set<TNode>& scope) const
+{
+//  Trace("smt-qe") << "ensureWellFormedTerm: considering node n = " << n << std::endl;
   if (Configuration::isAssertionBuild())
   {
     bool wasShadow = false;
@@ -1209,7 +1218,7 @@ void SolverEngine::ensureWellFormedTerm(const Node& n,
       else
       {
         std::unordered_set<internal::Node> fvs;
-        expr::getFreeVariables(n, fvs);
+        expr::getFreeVariablesScope(n, fvs, scope);
         se << "free variables: " << fvs << std::endl;
       }
       throw ModalException(se.str().c_str());

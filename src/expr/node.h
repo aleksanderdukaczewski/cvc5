@@ -429,7 +429,8 @@ public:
            || getKind() == kind::EXISTS || getKind() == kind::WITNESS
            || getKind() == kind::SET_COMPREHENSION
            || getKind() == kind::MATCH_BIND_CASE
-           || getKind() == kind::EXISTS_EXACTLY;
+           || getKind() == kind::EXISTS_EXACTLY
+           || getKind() == kind::QE_SEGMENT;
   }
 
   /**

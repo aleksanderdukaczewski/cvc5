@@ -470,6 +470,7 @@ bool getFreeVariablesScope(TNode n,
 {
   return getVariablesInternal(n, fvs, scope);
 }
+
 bool hasFreeVariablesScope(TNode n, std::unordered_set<TNode>& scope)
 {
   std::unordered_set<Node> fvs;

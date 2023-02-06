@@ -5339,7 +5339,8 @@ enum Kind : int32_t
    *   - Solver::mkOp(Kind, const std::vector<uint32_t>&) const
    */
   EXISTS,
-  EXISTS_EXACTLY, 
+  EXISTS_EXACTLY,
+  QE_SEGMENT,
   /**
    * Variable list.
    *

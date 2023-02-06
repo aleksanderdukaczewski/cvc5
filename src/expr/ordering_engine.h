@@ -34,11 +34,12 @@ class OrderingEngine
   generateResidueClassMappings(
       int range, std::vector<Node>& variables);
   Node assignResidueClass(Ordering ord, std::unordered_map<std::string, Node> assignment, std::vector<Node> variables, Integer m);
+  Node evaluateOrdering(Node &q, Ordering& ord, Node& segment, std::unordered_map<std::string, Node>& assignment, std::vector<Node>& variables, Integer& m);
+  Node orderingToNode(Ordering& ord);
 
  private:
   std::vector<Ordering> computeFamily(int j, std::vector<Ordering>& fam);
   bool satisfiableOrdering(Ordering& ord);
-  Node orderingToNode(Ordering& ord);
   void getCombinationsRec(
       std::vector<int> assignment,
       std::vector<std::vector<int>>& combinations,

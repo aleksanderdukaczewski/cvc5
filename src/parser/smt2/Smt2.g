@@ -1225,7 +1225,6 @@ termNonVariable[cvc5::Term& expr, cvc5::Term& expr2]
     { 
       args.push_back(bvl); 
 
-      PARSER_STATE->popScope();
       args.push_back(f);
       if(! f2.isNull()){
         args.push_back(f2);
@@ -1238,6 +1237,7 @@ termNonVariable[cvc5::Term& expr, cvc5::Term& expr2]
         args.push_back(f2);
       } 
       expr = MK_TERM(kind, args);
+      PARSER_STATE->popScope();
     }
   | LPAREN_TOK SET_COMPREHENSION_TOK
     { PARSER_STATE->pushScope(); }

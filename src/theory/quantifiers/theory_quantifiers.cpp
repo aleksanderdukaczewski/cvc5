@@ -173,11 +173,12 @@ bool TheoryQuantifiers::preNotifyFact(
     TNode atom, bool polarity, TNode fact, bool isPrereg, bool isInternal)
 {
   Kind k = atom.getKind();
+  Trace("smt-qe") << "k == " << k << std::endl;
   if (k == FORALL)
   {
     getQuantifiersEngine()->assertQuantifier(atom, polarity);
   }
-  else
+  else if (k != EXISTS_EXACTLY)
   {
     Unhandled() << "Unexpected fact " << fact;
   }

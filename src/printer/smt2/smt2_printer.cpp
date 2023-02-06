@@ -1413,6 +1413,7 @@ std::string Smt2Printer::smtKindString(Kind k)
     case kind::FORALL: return "forall";
     case kind::EXISTS: return "exists";
     case kind::EXISTS_EXACTLY: return "exists_exactly";
+    case kind::QE_SEGMENT: return "qe_segment";
 
     // HO
     case kind::HO_APPLY: return "@";
