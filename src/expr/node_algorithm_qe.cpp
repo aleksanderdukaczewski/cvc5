@@ -41,7 +41,7 @@ Node normaliseCoefficients(Node n,
                            Integer k,
                            std::vector<Node>& T)
 {
-  Trace("smt-qe") << "normaliseCoefficients: running on n = " << n << std::endl;
+//  Trace("smt-qe") << "normaliseCoefficients: running on n = " << n << std::endl;
   NodeManager* nm = NodeManager::currentNM();
   if (n.getKind() == LT)
   {
@@ -81,7 +81,7 @@ Node normaliseCoefficients(Node n,
 std::pair<Node, std::vector<Node>> normaliseFormula(Node n)
 {
   Node bound_var_node = n[0][0];
-  Trace("smt-qe") << "normaliseFormula: bound_var_node == n[0][0]: " << (bound_var_node == n[0][0]) << std::endl;
+//  Trace("smt-qe") << "normaliseFormula: bound_var_node == n[0][0]: " << (bound_var_node == n[0][0]) << std::endl;
   std::vector<Integer> v_coefs;
   getCoefficients(n, bound_var_node, v_coefs);
   Integer k(1);
@@ -238,7 +238,7 @@ Integer getCoefficient(Node n, Node bound_var)
 
 Node removeBoundVariable(Node n, Node bound_var, Integer& bound_var_coef)
 {
-  Trace("smt-qe") << "removeBoundVariable: running on node : " << n << std::endl;
+//  Trace("smt-qe") << "removeBoundVariable: running on node : " << n << std::endl;
 
   if (n.getNumChildren() > 0)
   {
@@ -288,7 +288,7 @@ Node removeBoundVariable(Node n, Node bound_var, Integer& bound_var_coef)
   {
     // A leaf node in the AST, CONST_INTEGER or VARIABLE that is
     // guaranteed not to be the bound variable or a negation of it
-    Trace("smt-qe") << "removeBoundVariable: returning leaf " << n << std::endl;
+//    Trace("smt-qe") << "removeBoundVariable: returning leaf " << n << std::endl;
     return n;
   }
 }

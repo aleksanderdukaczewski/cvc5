@@ -9,6 +9,8 @@
 
 #include "expr/node.h"
 #include "smt/smt_driver.h"
+#include "smt/quant_elim_solver.h"
+#include "theory/rewriter.h"
 
 using namespace cvc5::internal::kind;
 
@@ -24,7 +26,7 @@ struct Ordering
 class OrderingEngine
 {
  public:
-  OrderingEngine(std::vector<Node> terms);
+  OrderingEngine(std::vector<Node>& terms, theory::Rewriter* d_rewriter);
   ~OrderingEngine();
   std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
 
@@ -34,6 +36,16 @@ class OrderingEngine
   generateResidueClassMappings(
       int range, std::vector<Node>& variables);
   Node assignResidueClass(Ordering ord, std::unordered_map<std::string, Node> assignment, std::vector<Node> variables, Integer m);
+  bool countSolutions(
+      Ordering& ord,
+      std::unordered_map<std::string, Node>& assignment,
+      std::vector<Node>& variables,
+      Integer& m,
+      Node& q,
+      std::vector<int>& p,
+      std::vector<int>& r,
+      std::vector<int>& c);
+  Ordering makePairwiseNonEqual(Ordering& ord);
   Node evaluateOrdering(Node &q, Ordering& ord, Node& segment, std::unordered_map<std::string, Node>& assignment, std::vector<Node>& variables, Integer& m);
   Node orderingToNode(Ordering& ord);
 
@@ -49,6 +61,7 @@ class OrderingEngine
       int end);
 
   std::vector<Node> d_terms;
+  theory::Rewriter* d_rewriter;
 };
 
 }  // namespace expr

@@ -78,9 +78,9 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
                     << q << std::endl;
 
-    std::pair<Node, std::vector<Node>> p = expr::normaliseFormula(q);
-    q = p.first;
-    std::vector<Node> T = p.second;
+    std::pair<Node, std::vector<Node>> normalised_p = expr::normaliseFormula(q);
+    q = normalised_p.first;
+    std::vector<Node> T = normalised_p.second;
 
     for (int i = 0; i < T.size(); ++i)
     {
@@ -91,31 +91,14 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
                     << std::endl
                     << "set T: " << T << std::endl;
 
-    expr::OrderingEngine ordEng(T);
+    expr::OrderingEngine ordEng(T, d_env.getRewriter());
     std::vector<expr::Ordering> orderings = ordEng.computeOrderings();
     Trace("smt-qe") << "orderings: " << ordEng.familyToNodes(orderings)
                     << std::endl;
 
-    //    Trace("smt-qe") << "ENUMERATING GENERATED ORDERINGS:" << std::endl;
-    //    for (int i = 0; i < orderings.size(); ++i)
-    //    {
-    //      Node ordNode = ordEng.orderingToNode(orderings[i]);
-    //      Trace("smt-qe") << "Ordering no." << i+1 << " = " << ordNode << "of
-    //      kind = " << ordNode.getKind() << std::endl
-    //                      << "Rewritten no." << i+1 << " = " <<
-    //                      rewrite(ordNode) << std::endl;
-    //
-    //      Trace("smt-qe") << "ordNode's children:" << std::endl;
-    //      for (int j = 0; j < ordNode.getNumChildren(); ++j)
-    //      {
-    //        Trace("smt-qe") << "child no." << j+1 << ": " << ordNode[j] <<
-    //        std::endl;
-    //      }
-    //    }
-
     std::unordered_set<Node> Z;
     expr::getSymbols(q, Z);
-    Trace("smt-qe") << "symbols: " << Z << std::endl;
+
     std::vector<Integer> moduli;
     expr::getModuli(q, moduli);
     Integer m = Integer(1);
@@ -130,37 +113,55 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::vector<std::unordered_map<std::string, Node>> mappings =
         ordEng.generateResidueClassMappings(3, Z_vect);
 
-    Trace("smt-qe") << "Big Gamma: "
-                    << ordEng.assignResidueClass(
-                           orderings.at(2), mappings.at(0), Z_vect, m)
-                    << std::endl;
-
     Node bound_var = nm->mkBoundVar(q[0][0].toString(), nm->integerType());
-//    Node var_node = nm->mkVar(bound_var.toString(), nm->integerType());
     std::vector<Node> segments = ordEng.getSegments(bound_var, orderings.at(2));
 
     Trace("smt-qe") << "COMPUTED SEGMENTS: " << segments << std::endl;
 
-    ordEng.evaluateOrdering(q, orderings.at(0), segments.at(0), mappings.at(0), Z_vect, m);
+    Node qe_free = nm->mkConst<bool>(false);
 
-    std::vector<Node> evaluatedOrderings;
-
-    for (auto& assignment : mappings)
+    for (auto& ord: orderings)
     {
-      for (auto& ord : orderings)
+      for (auto& residue_class: mappings)
       {
-        for (auto& seg : segments)
+        expr::Ordering processed_ord = ordEng.makePairwiseNonEqual(ord);
+        int l = processed_ord.terms.size();
+        std::vector<int> p(l,0), r(l,0), c(l,0);
+        if (!ordEng.countSolutions(ord, residue_class, Z_vect, m, q, p, r, c))
         {
-          evaluatedOrderings.push_back(ordEng.evaluateOrdering(q, ord, seg, assignment, Z_vect, m));
+          continue;
         }
+
+        Node sum1 = nm->mkConstInt(0);
+        for (int j = 1; j < l; ++j)
+        {
+          sum1 = nm->mkNode(
+              ADD,
+              sum1,
+              nm->mkNode(ADD,
+                         nm->mkConstInt(r[j]),
+                         nm->mkNode(MULT,
+                                    nm->mkConstInt(p[j]),
+                                    nm->mkNode(SUB,
+                                               processed_ord.terms[j],
+                                               processed_ord.terms[j - 1]))));
+        }
+
+        Node sum2 = nm->mkConstInt(0);
+        for (int j = 0; j < l; ++j)
+        {
+          sum2 = nm->mkNode(ADD, sum2, nm->mkConstInt(c[j]));
+        }
+
+        Node phi = nm->mkNode(
+            EQUAL,
+            nm->mkNode(MULT, nm->mkConstInt(m), q[1]),
+            nm->mkNode(ADD, sum1, nm->mkNode(MULT, nm->mkConstInt(m), sum2)));
       }
     }
-
-    Trace("smt-qe") << "QuantElimSolver: evaluated orderings: " << evaluatedOrderings << std::endl;
-
     return q;
   }
-  else 
+  else
   {
     Trace("smt-qe") << "QuantElimSolver: get qe : " << q << std::endl;
     if (q.getKind() != EXISTS && q.getKind() != FORALL)
@@ -173,8 +174,6 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
                     << "q[0][0] = " << q[0][0] << " of kind = " << q[0][0].getKind() << std::endl
 //                    << "q[0][1] = " << q[0][1] << " of kind = " << q[0][1].getKind() << std::endl
                     << "q[1] = " << q[1] << " of kind = " << q[1].getKind() << std::endl;
-
-
 
     std::unordered_set<Node> s;
     expr::getFreeVariables(q, s);
@@ -272,7 +271,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       // Trace("smt-qe") << "ret before extendedRewrite: " << ret << std::endl;
       ret = extendedRewrite(ret);
       // Trace("smt-qe") << "ret after extendedRewrite: " << ret << std::endl;
-      
+
       // if we are not an internal subsolver, convert to witness form, since
       // internally generated skolems should not escape
       if (!isInternalSubsolver)
