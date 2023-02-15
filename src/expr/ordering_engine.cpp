@@ -152,8 +152,6 @@ Ordering OrderingEngine::makePairwiseNonEqual(Ordering& ord)
   std::vector<Kind_t> rels;
   Ordering new_ord = {terms, rels};
 
-  Trace("smt-qe") << "makePairwiseNonEqual: ord = " << orderingToNode(ord) << std::endl;
-
   new_ord.terms.push_back(ord.terms[0]);
   for (int i = 1; i < ord.terms.size(); ++i)
   {
@@ -164,8 +162,6 @@ Ordering OrderingEngine::makePairwiseNonEqual(Ordering& ord)
     }
   }
 
-  Trace("smt-qe") << "makePairwiseNonEqual: ord = " << new_ord.terms << std::endl;
-
   return new_ord;
 }
 
@@ -174,9 +170,6 @@ std::vector<Node> OrderingEngine::getSegments(Node& bound_var, Ordering& ord)
   std::vector<Node> segments;
   NodeManager* nm = NodeManager::currentNM();
   Ordering new_ord = makePairwiseNonEqual(ord);
-  Trace("smt-qe") << "getSegments: calling on bound_var = " << bound_var
-                  << " of kind: " << bound_var.getKind()
-                  << " and ord = " << orderingToNode(ord) << std::endl;
 
   segments.push_back(nm->mkNode(LT, bound_var, new_ord.terms[0]));
   segments.push_back(nm->mkNode(EQUAL, bound_var, new_ord.terms[0]));
@@ -194,26 +187,20 @@ std::vector<Node> OrderingEngine::getSegments(Node& bound_var, Ordering& ord)
   return segments;
 }
 
+/**
+ *
+ * @param range
+ * @param variables
+ * @return
+ */
 std::vector<std::unordered_map<std::string, Node>>
 OrderingEngine::generateResidueClassMappings(int range,
                                              std::vector<Node>& variables)
 {
-  Trace("smt-qe") << "generateResidueClassMappings: call on variables : "
-                  << variables << std::endl;
   std::vector<std::vector<int>> combinations;
   std::vector<int> assignment(variables.size(), 0);
   getCombinationsRec(
       assignment, combinations, 0, variables.size(), 0, range - 1);
-
-  //  Trace("smt-qe") << "Generated combinations : " << std::endl;
-  //  for (auto& as : combinations)
-  //  {
-  //    for (int i : as)
-  //    {
-  //      Trace("smt-qe") << i << " ";
-  //    }
-  //    Trace("smt-qe") << std::endl;
-  //  }
 
   NodeManager* nm = NodeManager::currentNM();
   std::vector<std::unordered_map<std::string, Node>> mappings;
@@ -233,13 +220,12 @@ OrderingEngine::generateResidueClassMappings(int range,
 }
 
 Node OrderingEngine::assignResidueClass(
-    Ordering ord,
     std::unordered_map<std::string, Node> assignment,
     std::vector<Node> variables,
     Integer m)
 {
-  Node ret = orderingToNode(ord);
   NodeManager* nm = NodeManager::currentNM();
+  Node ret = nm->mkConst<bool>(true);
 
   for (Node& var : variables)
   {
@@ -256,39 +242,19 @@ Node OrderingEngine::assignResidueClass(
 
 Node evaluateInequalities(Node& conj, Node cur, Node& q)
 {
-  //  Trace("smt-qe") << "evaluateInequality: cur = " << cur << ", conj = " <<
-  //  conj << std::endl;
+  SolverEngine se;
+  NodeManager* nm = NodeManager::currentNM();
 
   if (cur.getKind() == LT)
   {
-    //    Trace("smt-qe") << "INEQUALITY FOUND! cur = " << cur  << std::endl;
-
-    SolverEngine se;
-    NodeManager* nm = NodeManager::currentNM();
-    //    se.assertFormula(nm->mkNode(EXISTS_EXACTLY, q[0], q[1], conj));
     se.assertFormula(conj);
-    //    Trace("smt-qe") << "evaluateInequalities: current assertions: " <<
-    //    se.getAssertions() << std::endl;
     Result isSat = se.checkSat(nm->mkNode(EXISTS_EXACTLY, q[0], q[1], cur));
-    if (isSat == Result::SAT)
-    {
-      //      Trace("smt-qe") << "SAT! " << std::endl;
-      return nm->mkConst<bool>(true);
-    }
-    else
-    {
-      //      Trace("sme-qe") << "UNSAT! " << std::endl;
-      return nm->mkConst<bool>(false);
-    }
+    return nm->mkConst<bool>(isSat == Result::SAT);
   }
 
   NodeBuilder nb(cur.getKind());
   for (int i = 0; i < cur.getNumChildren(); ++i)
   {
-    //    Trace("smt-qe") << "Making a recursive call for cur[" << i << "] = "
-    //    << cur[i] << " of kind = " << cur[i].getKind() << " , cur = " << cur
-    //    << std::endl;
-
     nb << (cur[i].getNumChildren() > 0 ? evaluateInequalities(conj, cur[i], q)
                                        : cur[i]);
   }
@@ -344,54 +310,28 @@ Node OrderingEngine::evaluateOrdering(
     std::vector<Node>& variables,
     Integer& m)
 {
-  Trace("smt-qe") << "ord = " << orderingToNode(ord) << std::endl;
-  Node bigGamma = assignResidueClass(ord, assignment, variables, m);
   NodeManager* nm = NodeManager::currentNM();
+  Node bigGamma = nm->mkNode(AND, assignResidueClass(assignment, variables, m), orderingToNode(ord));
   Node conj = nm->mkNode(
       AND, nm->mkNode(kind::EXISTS_EXACTLY, q[0], q[1], segment), bigGamma);
 
-    Trace("smt-qe") << "Segment: " << segment << " has type " <<
-    segment.getKind() << " and  children " << std::endl
-            << segment[0] << segment[0].getKind() << segment[1].getKind() <<
-            std::endl;
   std::unordered_set<Node> freeVars;
   getFreeVariables(segment, freeVars);
-
-  Trace("smt-qe") << "evaluateOrdering: calculating with bigGamma = " <<
-  bigGamma << " and segment = " << segment << std::endl;
-
-  SolverEngine se;
-    Trace("smt-qe") << "Conjunction conj = " << conj << " is " <<
-    (se.checkSat(conj) == Result::SAT ? "satisfiable" : "unsatisfiable") <<
-    std::endl;
-
-  //  if (se.checkSat(conj) != Result::SAT)
-  //  {
-  //    Trace("smt-qe") << "BIG_GAMMA IS UNSAT" << std::endl;
-  //  }
-  //  else
-  //  {
-  //    Trace("smt-qe") << "BIG_GAMMA IS SAT" << std::endl;
-  //  }
 
   Node ret = evaluateInequalities(conj, q[2], q);
   ret = evaluateModuloConstraints(conj, ret, q);
   return ret;
 }
 
-Node getTermAssignment(Node t, std::unordered_map<std::string, Node>& assignment, std::vector<Node>& variables)
+Node OrderingEngine::getTermAssignment(Node t,
+                       std::unordered_map<std::string, Node>& assignment,
+                       std::vector<Node>& variables)
 {
-//  Trace("smt-qe") << "getTermAssignment: t = " << t << std::endl;
-
   for (Node& var : variables)
   {
-//    Trace("smt-qe") << "var = " << var << std::endl;
     TNode residue_class = assignment.at(var.toString());
     t = t.substitute(var, residue_class);
-//    Trace("smt-qe") << "r_t = " << var << std::endl;
   }
-
-//  Trace("smt-qe") << "getTermAssignment: returning t = " << t << std::endl;
 
   return t;
 }
@@ -430,37 +370,22 @@ bool OrderingEngine::countSolutions(
     return false;
   }
 
-  Trace("smt-qe") << "ord = " << orderingToNode(ord) << std::endl <<  "processed_ord = " << orderingToNode(ord) << std::endl;
-
   for (int j = 0; j < l; ++j)
   {
-    Trace("smt-qe") << "j = " << j << std::endl;
-
     Node seg = nm->mkNode(EQUAL, q[0][0], pairwise_ne_t[j]);
-
-    Trace("smt-qe") << "seg = " << seg << std::endl;
-
     Node evaluated_ord =
          evaluateOrdering(q, ord, seg, assignment, variables, m);
-
-    Trace("smt-qe") << "evaluated_ord = " << evaluated_ord << std::endl;
 
     TNode r_t = d_rewriter->rewrite(getTermAssignment(pairwise_ne_t[j], assignment, variables));
     evaluated_ord = evaluated_ord.substitute(q[0][0], r_t);
 
-    Trace("smt-qe") << "evaluated_ord = " << evaluated_ord << std::endl;
-
     c[j] = (d_rewriter->rewrite(evaluated_ord) == trueNode) ? 1 : 0;
-
-    Trace("smt-qe") << "c[j] = " << c[j] << std::endl;
 
     if (j == 0) continue;
 
     seg = nm->mkNode(AND,
                      nm->mkNode(LT, pairwise_ne_t[j - 1], q[0][0]),
                      nm->mkNode(LT, q[0][0], pairwise_ne_t[j]));
-
-    Trace("smt-qe") << "seg = " << seg << std::endl;
 
     for (int i = 0; i < m.getSignedInt(); ++i)
     {
@@ -471,11 +396,7 @@ bool OrderingEngine::countSolutions(
       }
     }
 
-    Trace("smt-qe") << "p[j] = " << p[j] << std::endl;
-
     TNode r_t_prev = d_rewriter->rewrite(getTermAssignment(pairwise_ne_t[j-1], assignment, variables));
-
-    Trace("smt-qe") << "r_t_prev  = " << r_t_prev << std::endl;
 
     int u1_j = nodeToInt(r_t_prev);
     int u2_j = u1_j+1;
@@ -483,25 +404,19 @@ bool OrderingEngine::countSolutions(
     {
       u2_j++;
     }
-    Trace("smt-qe") << "u1_j = " << u1_j << std::endl << "u2_j = " << u2_j << std::endl;
 
     int r_j_prime = 0;
     for (int i = u1_j+1; i <= u2_j-1; ++i)
     {
-      Trace("smt-qe") << "i = " << i << std::endl;
       Node i_node = nm->mkConstInt(Rational(i));
       TNode temp = i_node;
-      Trace("smt-qe") << "i_node = " << i_node << std::endl;
       if (d_rewriter->rewrite(evaluated_ord.substitute(q[0][0], temp)) == trueNode)
       {
-       Trace("smt-qe") << "incrementing r_j_prime " << std::endl;
        r_j_prime++;
       }
     }
 
     r[j] = -p[j] * (u2_j - u1_j) + m_int * r_j_prime;
-
-    Trace("smt-qe") << "r[j]" << r[j] << std::endl;
   }
 
   return true;
@@ -515,26 +430,14 @@ void OrderingEngine::getCombinationsRec(
     int start,
     int end)
 {
-  //  Trace("smt-qe") << "getCombinationsRec: call with index = " << index
-  //                  << std::endl
-  //                  << "with r = " << r << " and with assignment: " <<
-  //                  std::endl;
-
   if (index == r)
   {
-    //    Trace("smt-qe") << "SAVING ASSIGNMENT: ";
-    //    for (int i : assignment)
-    //    {
-    //      Trace("smt-qe") << i << " ";
-    //    }
-    //    Trace("smt-qe") << std::endl;
     combinations.push_back(assignment);
     return;
   }
 
   for (int j = start; j <= end; j++)
   {
-//        Trace("smt-qe") << "j = " << j << std::endl;
     assignment[index] = j;
     getCombinationsRec(assignment, combinations, index + 1, r, j, end);
   }

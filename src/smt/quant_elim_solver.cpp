@@ -53,26 +53,18 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
   {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
 
-     Trace("smt-qe") <<
-       "Node q: " << q <<  " of kind " << q.getKind() << std::endl <<
-       "q[0]: " << q[0] <<  " of kind " << q[0].getKind() << std::endl <<
-       "q[0][0]: " << q[0][0] << " of kind " << q[0][0].getKind() << std::endl <<
-       "q[1]: " << q[1] << " of kind " << q[1].getKind() << std::endl <<
-        "q[2][0][0][1]: " << q[2][0][0][1] << " of kind " << q[2][0][0][1].getKind() << std::endl <<
-        "q[2]: " << q[2] << " of kind " << q[2].getKind() << std::endl <<
-        "q[0][0] == q[2][0][0][1]: " << (q[0][0] == q[2][0][0][1]) << std::endl <<
-        "q[2][1][0]: " << q[2][1][0] << " of kind: " << q[2][1][0].getKind() << std::endl <<
-       "q[0][0] == q[2][1][0]: " << (q[0][0] == q[2][1][0]) << std::endl;
+    Trace("smt-qe") << "Node q: " << q <<  " of kind " << q.getKind() << std::endl;
+
+    Node rewrittenExpr = expr::rewrite_qe(q[2]);
+    Trace("smt-qe") << "Rewritten expr: " << rewrittenExpr << std::endl;
+
     // ensure the body is rewritten
-    q = nm->mkNode(q.getKind(), q[0], q[1], expr::rewriteIq(q[2]));
-    Trace("smt-qe") << "Rewritten q: " << q << std::endl;
+    rewrittenExpr = expr::simplifyModuloConstraints(rewrittenExpr, d_env.getRewriter());
+    Trace("smt-qe") << "expr after simplifying modulo constraints: " << rewrittenExpr << std::endl;
 
-    std::unordered_set<Node> fvs_expr, fvs;
-    expr::getFreeVariables(q, fvs);
-    expr::getFreeVariables(q[2], fvs_expr);
-    Trace("smt-qe") << "fvs_expr: " << fvs_expr << std::endl << "fvs: " << fvs << std::endl;
+    q = nm->mkNode(q.getKind(), q[0], q[1], rewrittenExpr);
 
-        // do nested quantifier elimination if necessary (Nested counting quantifier
+    // do nested quantifier elimination if necessary (Nested counting quantifier
     // elimination not supported yet.)
     q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
     Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
@@ -99,12 +91,13 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::unordered_set<Node> Z;
     expr::getSymbols(q, Z);
 
-    std::vector<Integer> moduli;
+    std::unordered_set<Node> moduli;
     expr::getModuli(q, moduli);
     Integer m = Integer(1);
-    for (Integer mod : moduli)
+    for (const auto& mod : moduli)
     {
-      m = m.lcm(mod);
+      Integer mod_i = mod.getConst<Rational>().getNumerator();
+      m = m.lcm(mod_i);
     }
 
     std::vector<Node> Z_vect;
@@ -114,10 +107,6 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         ordEng.generateResidueClassMappings(3, Z_vect);
 
     Node bound_var = nm->mkBoundVar(q[0][0].toString(), nm->integerType());
-    std::vector<Node> segments = ordEng.getSegments(bound_var, orderings.at(2));
-
-    Trace("smt-qe") << "COMPUTED SEGMENTS: " << segments << std::endl;
-
     Node qe_free = nm->mkConst<bool>(false);
 
     for (auto& ord: orderings)

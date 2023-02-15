@@ -32,10 +32,15 @@ class OrderingEngine
 
   std::vector<Ordering> computeOrderings();
   std::vector<Node> getSegments(Node& bound_var, Ordering& ord);
-  std::vector<std::unordered_map<std::string, Node>>
+  static std::vector<std::unordered_map<std::string, Node>>
   generateResidueClassMappings(
       int range, std::vector<Node>& variables);
-  Node assignResidueClass(Ordering ord, std::unordered_map<std::string, Node> assignment, std::vector<Node> variables, Integer m);
+  Node assignResidueClass(std::unordered_map<std::string, Node> assignment,
+                          std::vector<Node> variables,
+                          Integer m);
+  static Node getTermAssignment(Node t,
+                         std::unordered_map<std::string, Node>& assignment,
+                         std::vector<Node>& variables);
   bool countSolutions(
       Ordering& ord,
       std::unordered_map<std::string, Node>& assignment,
@@ -52,7 +57,7 @@ class OrderingEngine
  private:
   std::vector<Ordering> computeFamily(int j, std::vector<Ordering>& fam);
   bool satisfiableOrdering(Ordering& ord);
-  void getCombinationsRec(
+  static void getCombinationsRec(
       std::vector<int> assignment,
       std::vector<std::vector<int>>& combinations,
       int index,

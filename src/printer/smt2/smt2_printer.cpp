@@ -1410,7 +1410,7 @@ std::string Smt2Printer::smtKindString(Kind k)
     // quantifiers
     case kind::FORALL: return "forall";
     case kind::EXISTS: return "exists";
-    case kind::EXISTS_EXACTLY: return "exists_exactly";
+    case kind::EXISTS_EXACTLY: return "exists-exactly";
     case kind::QE_SEGMENT: return "qe_segment";
 
     // HO

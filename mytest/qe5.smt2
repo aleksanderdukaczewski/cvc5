@@ -1,0 +1,6 @@
+; EXPECT: (not (>= (+ a (* (- 1) b)) 1))
+(set-logic LIA)
+(declare-fun a () Int)
+(declare-fun b () Int)
+(declare-fun x () Int)
+(get-qe (exists-exactly ((x Int)) 10 (and (= (mod a 2) (mod b 2)) (and (> (* 2 x) a) (< x (* 2 a))))))
