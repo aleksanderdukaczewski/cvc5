@@ -12,36 +12,36 @@ using namespace cvc5::internal::kind;
 
 namespace cvc5::internal {
 
-OrderingEngine::OrderingEngine(std::vector<Node>& terms, theory::Rewriter* rewriter) : d_terms(terms), d_rewriter(rewriter) {}
+OrderingEngine::OrderingEngine(theory::Rewriter* rewriter) : d_rewriter(rewriter) {}
 
 OrderingEngine::~OrderingEngine() {}
 
-std::vector<Ordering> OrderingEngine::computeOrderings()
+std::vector<Ordering> OrderingEngine::computeOrderings(std::vector<Node>& terms)
 {
   std::vector<Ordering> fam;
-  for (int j = 1; j <= d_terms.size(); ++j)
+  for (int j = 1; j <= terms.size(); ++j)
   {
-    fam = computeFamily(j, fam);
+    fam = computeFamily(j, fam, terms);
   }
 
   return fam;
 }
 
 std::vector<Ordering> OrderingEngine::computeFamily(
-    int j, std::vector<Ordering>& prev_fam)
+    int j, std::vector<Ordering>& prev_fam, std::vector<Node>& terms)
 {
   std::vector<Ordering> fam;
   if (j == 1)
   {
     std::vector<Node> terms_v;
     std::vector<Kind> rels_v;
-    terms_v.push_back(d_terms.at(0));
+    terms_v.push_back(terms.at(0));
     Ordering ord = {terms_v, rels_v};
     fam.push_back(ord);
   }
   else
   {
-    Node curr_term = d_terms.at(j - 1);
+    Node curr_term = terms.at(j - 1);
 
     for (Ordering& ord : prev_fam)
     {
@@ -160,12 +160,6 @@ std::vector<Node> OrderingEngine::getSegments(Node& bound_var, Ordering& ord)
   return segments;
 }
 
-/**
- *
- * @param range
- * @param variables
- * @return
- */
 std::vector<std::unordered_map<std::string, Node>>
 OrderingEngine::generateResidueClassMappings(int range,
                                              std::vector<Node>& variables)
@@ -213,7 +207,28 @@ Node OrderingEngine::assignResidueClass(
   return ret;
 }
 
-Node evaluateInequalities(Node& conj, Node cur, Node& q)
+void OrderingEngine::getCombinationsRec(
+    std::vector<int> assignment,
+    std::vector<std::vector<int>>& combinations,
+    int index,
+    int r,
+    int start,
+    int end)
+{
+  if (index == r)
+  {
+    combinations.push_back(assignment);
+    return;
+  }
+
+  for (int j = start; j <= end; ++j)
+  {
+    assignment[index] = j;
+    getCombinationsRec(assignment, combinations, index + 1, r, j, end);
+  }
+}
+
+Node OrderingEngine::evaluateInequalities(Node& conj, Node cur, Node& q)
 {
   SolverEngine se;
   NodeManager* nm = NodeManager::currentNM();
@@ -235,7 +250,7 @@ Node evaluateInequalities(Node& conj, Node cur, Node& q)
   return ret;
 }
 
-Node evaluateModuloConstraints(Node& conj, Node cur, Node& q)
+Node OrderingEngine::evaluateModuloConstraints(Node& conj, Node cur, Node& q)
 {
   NodeManager* nm = NodeManager::currentNM();
   if (cur.getKind() == EQUAL
@@ -309,7 +324,7 @@ Node OrderingEngine::getTermAssignment(Node t,
   return t;
 }
 
-int getIntFromNode(TNode& n)
+int extractInt(TNode& n)
 {
   return n.getConst<Rational>().getNumerator().getSignedInt();
 }
@@ -371,9 +386,9 @@ bool OrderingEngine::countSolutions(
 
     TNode r_t_prev = d_rewriter->rewrite(getTermAssignment(pairwise_ne_t[j-1], assignment, variables));
 
-    int u1_j = getIntFromNode(r_t_prev);
+    int u1_j = extractInt(r_t_prev);
     int u2_j = u1_j+1;
-    while (u2_j % m_int != getIntFromNode(r_t_prev) % m_int)
+    while (u2_j % m_int != extractInt(r_t_prev) % m_int)
     {
       u2_j++;
     }
@@ -394,26 +409,4 @@ bool OrderingEngine::countSolutions(
 
   return true;
 }
-
-void OrderingEngine::getCombinationsRec(
-    std::vector<int> assignment,
-    std::vector<std::vector<int>>& combinations,
-    int index,
-    int r,
-    int start,
-    int end)
-{
-  if (index == r)
-  {
-    combinations.push_back(assignment);
-    return;
-  }
-
-  for (int j = start; j <= end; ++j)
-  {
-    assignment[index] = j;
-    getCombinationsRec(assignment, combinations, index + 1, r, j, end);
-  }
-}
-
 }  // namespace cvc5::internal

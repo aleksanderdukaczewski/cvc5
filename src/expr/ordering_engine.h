@@ -1,6 +1,3 @@
-//
-// Created by Aleksander Dukaczewski on 30/01/2023.
-//
 
 #ifndef CVC5_ORDERINGS_H
 #define CVC5_ORDERINGS_H
@@ -23,11 +20,11 @@ struct Ordering
 class OrderingEngine
 {
  public:
-  OrderingEngine(std::vector<Node>& terms, theory::Rewriter* d_rewriter);
+  OrderingEngine(theory::Rewriter* d_rewriter);
   ~OrderingEngine();
-  std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
 
-  std::vector<Ordering> computeOrderings();
+  std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
+  std::vector<Ordering> computeOrderings(std::vector<Node>& terms);
   std::vector<Node> getSegments(Node& bound_var, Ordering& ord);
   static std::vector<std::unordered_map<std::string, Node>>
   generateResidueClassMappings(
@@ -52,8 +49,12 @@ class OrderingEngine
   Node orderingToNode(Ordering& ord);
 
  private:
-  std::vector<Ordering> computeFamily(int j, std::vector<Ordering>& fam);
+  std::vector<Ordering> computeFamily(int j,
+                                      std::vector<Ordering>& fam,
+                                      std::vector<Node>& terms);
   bool satisfiableOrdering(Ordering& ord);
+  Node evaluateModuloConstraints(Node& conj, Node cur, Node& q);
+  Node evaluateInequalities(Node& conj, Node cur, Node& q);
   static void getCombinationsRec(
       std::vector<int> assignment,
       std::vector<std::vector<int>>& combinations,
@@ -62,7 +63,6 @@ class OrderingEngine
       int start,
       int end);
 
-  std::vector<Node> d_terms;
   theory::Rewriter* d_rewriter;
 };
 

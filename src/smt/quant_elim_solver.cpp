@@ -52,7 +52,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
   if (q.getKind() == EXISTS_EXACTLY)
   {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
-    Trace("smt-qe") << "Node q: " << q <<  " of kind " << q.getKind() << std::endl;
+    Trace("smt-qe") << "Node q: " << q;
     NormalizationEngine ne(d_env.getRewriter());
     Node rewrittenExpr = ne.rewrite_qe(q[2]);
     Trace("smt-qe") << "Rewritten expr: " << rewrittenExpr << std::endl;
@@ -62,27 +62,21 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     q = nm->mkNode(q.getKind(), q[0], q[1], rewrittenExpr);
     Trace("smt-qe") << "expr after simplifying modulo constraints: " << rewrittenExpr << std::endl;
 
-    // do nested quantifier elimination if necessary (Nested counting quantifier
-    // elimination not supported yet.)
-    q = quantifiers::NestedQe::doNestedQe(d_env, q, true);
-    Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
-                    << q << std::endl;
-
-    std::pair<Node, std::vector<Node>> normalised_p = NormalizationEngine::normalizeFormula(q);
+    std::pair<Node, std::vector<Node>> normalised_p = ne.normalizeFormula(q);
     q = normalised_p.first;
-    std::vector<Node> T = normalised_p.second;
+    std::vector<Node> terms_v = normalised_p.second;
 
-    for (int i = 0; i < T.size(); ++i)
+    for (int i = 0; i < terms_v.size(); ++i)
     {
-      T[i] = rewrite(T[i]);
+      terms_v[i] = rewrite(terms_v[i]);
     }
 
     Trace("smt-qe") << "QuantElimSolver: after normalising the formula : " << q
                     << std::endl
-                    << "set T: " << T << std::endl;
+                    << "set terms_v: " << terms_v << std::endl;
 
-    OrderingEngine ordEng(T, d_env.getRewriter());
-    std::vector<Ordering> orderings = ordEng.computeOrderings();
+    OrderingEngine ordEng(d_env.getRewriter());
+    std::vector<Ordering> orderings = ordEng.computeOrderings(terms_v);
     Trace("smt-qe") << "orderings: " << ordEng.familyToNodes(orderings)
                     << std::endl;
 
@@ -153,16 +147,6 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       throw ModalException(
           "Expecting a quantified formula as argument to get-qe.");
     }
-
-    Trace("smt-qe") << "q[0] = " << q[0] << " of kind = " << q[0].getKind() << std::endl
-                    << "q[0][0] = " << q[0][0] << " of kind = " << q[0][0].getKind() << std::endl
-//                    << "q[0][1] = " << q[0][1] << " of kind = " << q[0][1].getKind() << std::endl
-                    << "q[1] = " << q[1] << " of kind = " << q[1].getKind() << std::endl;
-
-    std::unordered_set<Node> s;
-    expr::getFreeVariables(q, s);
-    Trace("smt-qe") << "Subterms of q: " << s << std::endl;
-
     // ensure the body is rewritten
     q = nm->mkNode(q.getKind(), q[0], rewrite(q[1]));
     // do nested quantifier elimination if necessary
@@ -177,16 +161,8 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         nm->mkConst(String(doFull ? "quant-elim" : "quant-elim-partial"));
     Node n_attr = nm->mkNode(INST_ATTRIBUTE, keyword);
     n_attr = nm->mkNode(INST_PATTERN_LIST, n_attr);
-    Trace("smt-qe-debug") << "n_attr : " << n_attr
-                        << std::endl;
     std::vector<Node> children;
     children.push_back(q[0]);
-
-    // Trace("smt-qe") << "kind is " << toString(q.getKind())
-    //               << std::endl;
-    // Trace("smt-qe") << "q[1] is " << q[1]
-    //               << std::endl;
-
     children.push_back(q.getKind() == EXISTS ? q[1] : q[1].negate());
     children.push_back(n_attr);
     Node ne = nm->mkNode(EXISTS, children);
@@ -195,8 +171,6 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     Assert(ne.getNumChildren() == 3);
     // use a single call driver
     SmtDriverSingleCall sdsc(d_env, d_smtSolver);
-    Trace("smt-qe") << "Formula for query " << ne << std::endl;
-    Trace("smt-qe") << "Formula after applying notNode() " << ne.notNode() << std::endl;
     Result r = sdsc.checkSat(std::vector<Node>{ne.notNode()});
     Trace("smt-qe") << "Query returned " << r << std::endl;
     if (r.getStatus() != Result::UNSAT)
@@ -239,23 +213,17 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         // an internal subsolver (SolverEngine::isInternalSubsolver).
         ret = nm->mkAnd(insts);
         Trace("smt-qe") << "QuantElimSolver returned : " << ret << std::endl;
-        Trace("smt-qe") << "rewritten formula that QuantElimSolver returned : " << rewrite(ret) << std::endl;
         if (q.getKind() == EXISTS)
         {
           ret = rewrite(ret.negate());
-          Trace("smt-qe") << "Negation of previously returned value (query has existential quantifier): " << ret << std::endl;
         }
       }
       else
       {
         ret = nm->mkConst(q.getKind() != EXISTS);
       }
-
       // do extended rewrite to minimize the size of the formula aggressively
-      // Trace("smt-qe") << "ret before extendedRewrite: " << ret << std::endl;
       ret = extendedRewrite(ret);
-      // Trace("smt-qe") << "ret after extendedRewrite: " << ret << std::endl;
-
       // if we are not an internal subsolver, convert to witness form, since
       // internally generated skolems should not escape
       if (!isInternalSubsolver)
