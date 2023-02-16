@@ -20,7 +20,7 @@ namespace expr {
  * @param q
  * @return Normalised formula and set of terms T
  */
-std::pair<Node, std::vector<Node>> normaliseFormula(Node q);
+//std::pair<Node, std::vector<Node>> normaliseFormula(Node q);
 
 /**
  * Find all coefficients of var_node in n and its children, add them to v_coefs.
@@ -28,16 +28,16 @@ std::pair<Node, std::vector<Node>> normaliseFormula(Node q);
  * @param var_node The node whose coefficients are collected
  * @param s_coefs The vector the coefficients are added to
  */
-void getCoefficients(Node& n,
-                     Node& bound_var_node,
-                     std::unordered_set<Node>& s_coefs);
+//void getCoefficients(Node& n,
+//                     Node& bound_var_node,
+//                     std::unordered_set<Node>& s_coefs);
 
 Node simplifyModuloConstraints(Node n, theory::Rewriter* rr);
 
 /**
  * Check if two nodes evaluate to the same string representation (== operator implementation on Node only compares NodeValue pointers)
 */
-bool sameVar(Node n, Node m);
+//bool sameVar(Node n, Node m);
 
 /**
  * Recursive function that looks for inequalities of
@@ -45,12 +45,12 @@ bool sameVar(Node n, Node m);
  * could occur in the lhs. If such inequality is found, then extract 
  * the coefficient of bound variable and call substituteCoefficients on the LHS.
 */
-Node normaliseCoefficients(Node n,
-                           Node bound_var_node,
-                           Integer k,
-                           std::unordered_set<Node>& T);
+//Node normaliseCoefficients(Node n,
+//                           Node bound_var_node,
+//                           Integer k,
+//                           std::unordered_set<Node>& T);
 
-Node removeBoundVariable(Node n, Node bound_var, Integer& bound_var_coef);
+//Node removeBoundVariable(Node n, Node bound_var, Integer& bound_var_coef);
 
 /**
  * Rewrite inequalities in node n to 

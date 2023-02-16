@@ -29,6 +29,7 @@
 #include "expr/node_algorithm.h"
 #include "expr/node_algorithm_qe.h"
 #include "expr/ordering_engine.h"
+#include "expr/normalization_engine.h"
 
 using namespace cvc5::internal::theory;
 using namespace cvc5::internal::kind;
@@ -52,7 +53,6 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
   if (q.getKind() == EXISTS_EXACTLY)
   {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
-
     Trace("smt-qe") << "Node q: " << q <<  " of kind " << q.getKind() << std::endl;
 
     Node rewrittenExpr = expr::rewrite_qe(q[2]);
@@ -60,9 +60,8 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
 
     // ensure the body is rewritten
     rewrittenExpr = expr::simplifyModuloConstraints(rewrittenExpr, d_env.getRewriter());
-    Trace("smt-qe") << "expr after simplifying modulo constraints: " << rewrittenExpr << std::endl;
-
     q = nm->mkNode(q.getKind(), q[0], q[1], rewrittenExpr);
+    Trace("smt-qe") << "expr after simplifying modulo constraints: " << rewrittenExpr << std::endl;
 
     // do nested quantifier elimination if necessary (Nested counting quantifier
     // elimination not supported yet.)
@@ -70,7 +69,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     Trace("smt-qe") << "QuantElimSolver: after nested quantifier elimination : "
                     << q << std::endl;
 
-    std::pair<Node, std::vector<Node>> normalised_p = expr::normaliseFormula(q);
+    std::pair<Node, std::vector<Node>> normalised_p = NormalizationEngine::normalizeFormula(q);
     q = normalised_p.first;
     std::vector<Node> T = normalised_p.second;
 
@@ -83,8 +82,8 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
                     << std::endl
                     << "set T: " << T << std::endl;
 
-    expr::OrderingEngine ordEng(T, d_env.getRewriter());
-    std::vector<expr::Ordering> orderings = ordEng.computeOrderings();
+    OrderingEngine ordEng(T, d_env.getRewriter());
+    std::vector<Ordering> orderings = ordEng.computeOrderings();
     Trace("smt-qe") << "orderings: " << ordEng.familyToNodes(orderings)
                     << std::endl;
 
@@ -106,14 +105,11 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::vector<std::unordered_map<std::string, Node>> mappings =
         ordEng.generateResidueClassMappings(3, Z_vect);
 
-    Node bound_var = nm->mkBoundVar(q[0][0].toString(), nm->integerType());
-    Node qe_free = nm->mkConst<bool>(false);
-
     for (auto& ord: orderings)
     {
       for (auto& residue_class: mappings)
       {
-        expr::Ordering processed_ord = ordEng.makePairwiseNonEqual(ord);
+        Ordering processed_ord = ordEng.makePairwiseNonEqual(ord);
         int l = processed_ord.terms.size();
         std::vector<int> p(l,0), r(l,0), c(l,0);
         if (!ordEng.countSolutions(ord, residue_class, Z_vect, m, q, p, r, c))

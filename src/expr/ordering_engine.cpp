@@ -11,7 +11,6 @@
 using namespace cvc5::internal::kind;
 
 namespace cvc5::internal {
-namespace expr {
 
 OrderingEngine::OrderingEngine(std::vector<Node>& terms, theory::Rewriter* rewriter) : d_terms(terms), d_rewriter(rewriter) {}
 
@@ -269,7 +268,7 @@ Node evaluateModuloConstraints(Node& conj, Node cur, Node& q)
       && (cur[0].getKind() == INTS_MODULUS || cur[1].getKind() == INTS_MODULUS))
   {
     std::unordered_set<Node> syms;
-    getSymbols(cur, syms);
+    expr::getSymbols(cur, syms);
     if (syms.find(q[0][0]) == syms.end())
     {
       SolverEngine se;
@@ -316,7 +315,7 @@ Node OrderingEngine::evaluateOrdering(
       AND, nm->mkNode(kind::EXISTS_EXACTLY, q[0], q[1], segment), bigGamma);
 
   std::unordered_set<Node> freeVars;
-  getFreeVariables(segment, freeVars);
+  expr::getFreeVariables(segment, freeVars);
 
   Node ret = evaluateInequalities(conj, q[2], q);
   ret = evaluateModuloConstraints(conj, ret, q);
@@ -443,5 +442,4 @@ void OrderingEngine::getCombinationsRec(
   }
 }
 
-}  // namespace expr
 }  // namespace cvc5::internal

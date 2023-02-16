@@ -2,8 +2,6 @@
 // Created by Aleksander Dukaczewski on 30/01/2023.
 //
 
-#include "cvc5_private.h"
-
 #ifndef CVC5_ORDERINGS_H
 #define CVC5_ORDERINGS_H
 
@@ -15,7 +13,6 @@
 using namespace cvc5::internal::kind;
 
 namespace cvc5::internal {
-namespace expr {
 
 struct Ordering
 {
@@ -69,6 +66,6 @@ class OrderingEngine
   theory::Rewriter* d_rewriter;
 };
 
-}  // namespace expr
 }  // namespace cvc5::internal
+
 #endif  // CVC5_ORDERINGS_H
