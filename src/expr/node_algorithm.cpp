@@ -19,6 +19,7 @@
 
 #include "expr/attribute.h"
 #include "expr/dtype.h"
+#include "util/rational.h"
 
 namespace cvc5::internal {
 namespace expr {
@@ -761,6 +762,24 @@ bool isTheoryAtom(TNode n)
   Assert(k != kind::NOT);
   return k != kind::AND && k != kind::OR && k != kind::IMPLIES && k != kind::ITE
          && k != kind::XOR && (k != kind::EQUAL || !n[0].getType().isBoolean());
+}
+
+void getModuli(Node n, std::unordered_set<Node>& s_mod)
+{
+  if (n.getKind() == kind::EQUAL && n[1].getKind() == kind::CONST_INTEGER
+      && n[1].getConst<Rational>().isZero()
+      && n[0].getKind() == kind::INTS_MODULUS
+      && n[0][1].getKind() == kind::CONST_INTEGER)
+  {
+    s_mod.insert(n[0][1]);
+  }
+  else if (n.getNumChildren() > 0)
+  {
+    for (int i = 0; i < n.getNumChildren(); ++i)
+    {
+      getModuli(n[i], s_mod);
+    }
+  }
 }
 
 }  // namespace expr

@@ -244,6 +244,13 @@ bool isBooleanConnective(TNode cur);
 /** Is n a theory atom? */
 bool isTheoryAtom(TNode cur);
 
+/**
+ * Get all moduli appearing in the expression n
+ * @param n
+ * @param s_mod
+ */
+void getModuli(Node n, std::unordered_set<Node>& s_mod);
+
 }  // namespace expr
 }  // namespace cvc5::internal
 

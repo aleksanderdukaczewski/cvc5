@@ -50,8 +50,6 @@ libcvc5_add_sources(
   node.h
   node_algorithm.cpp
   node_algorithm.h
-  node_algorithm_qe.cpp
-  node_algorithm_qe.h
   node_builder.cpp
   node_builder.h
   node_converter.cpp

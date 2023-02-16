@@ -18,17 +18,11 @@ OrderingEngine::~OrderingEngine() {}
 
 std::vector<Ordering> OrderingEngine::computeOrderings()
 {
-  //  Trace("smt-qe") << "computeOrderings: trying to compute orderings for the
-  //  set T = " << d_terms << std::endl;
-
   std::vector<Ordering> fam;
   for (int j = 1; j <= d_terms.size(); ++j)
   {
     fam = computeFamily(j, fam);
   }
-
-  //  Trace("smt-qe") << "computeOrderings: finished all iterations of
-  //  computeFamily" << d_terms << std::endl;
 
   return fam;
 }
@@ -36,9 +30,6 @@ std::vector<Ordering> OrderingEngine::computeOrderings()
 std::vector<Ordering> OrderingEngine::computeFamily(
     int j, std::vector<Ordering>& prev_fam)
 {
-  //  Trace("smt-qe") << "computeFamily: computing family for term number j = "
-  //  << j << std::endl;
-
   std::vector<Ordering> fam;
   if (j == 1)
   {
@@ -61,8 +52,6 @@ std::vector<Ordering> OrderingEngine::computeFamily(
         new_ord.terms.insert(new_ord.terms.begin() + i - 1, curr_term);
         if (satisfiableOrdering(new_ord))
         {
-          //          Trace("smt-qe") << "ADDING ORDERING TO FAMILY" <<
-          //          std::endl;
           fam.push_back(new_ord);
         }
 
@@ -71,8 +60,6 @@ std::vector<Ordering> OrderingEngine::computeFamily(
         new_ord.terms.insert(new_ord.terms.begin() + i - 1, curr_term);
         if (satisfiableOrdering(new_ord))
         {
-          //          Trace("smt-qe") << "ADDING ORDERING TO FAMILY" <<
-          //          std::endl;
           fam.push_back(new_ord);
         }
 
@@ -81,8 +68,6 @@ std::vector<Ordering> OrderingEngine::computeFamily(
         new_ord.terms.insert(new_ord.terms.begin() + i, curr_term);
         if (satisfiableOrdering(new_ord))
         {
-          //          Trace("smt-qe") << "ADDING ORDERING TO FAMILY" <<
-          //          std::endl;
           fam.push_back(new_ord);
         }
       }
@@ -94,15 +79,6 @@ std::vector<Ordering> OrderingEngine::computeFamily(
 
 Node OrderingEngine::orderingToNode(Ordering& ord)
 {
-  //  Trace("smt-qe") << "satisfiableOrdering: considering ordering with terms:
-  //  " << ord.terms << std::endl << " and relations: ";
-
-  //  for (auto& k : ord.rels)
-  //  {
-  //    Trace("smt-qe") << kind::toString(k) << " ";
-  //  }
-  //  Trace("smt-qe") << std::endl;
-
   Node n;
   NodeManager* nm = NodeManager::currentNM();
   if (ord.terms.size() == 1)
@@ -114,8 +90,6 @@ Node OrderingEngine::orderingToNode(Ordering& ord)
     for (int i = 1; i < ord.terms.size(); ++i)
     {
       Node RHS = nm->mkNode(ord.rels[i - 1], ord.terms[i - 1], ord.terms[i]);
-      //    Trace("smt-qe") << "new RHS = " << RHS << " and LHS = " << n <<
-      //    std::endl;
       if (i == 1)
       {
         n = RHS;
@@ -335,7 +309,7 @@ Node OrderingEngine::getTermAssignment(Node t,
   return t;
 }
 
-int nodeToInt(TNode& n)
+int getIntFromNode(TNode& n)
 {
   return n.getConst<Rational>().getNumerator().getSignedInt();
 }
@@ -397,9 +371,9 @@ bool OrderingEngine::countSolutions(
 
     TNode r_t_prev = d_rewriter->rewrite(getTermAssignment(pairwise_ne_t[j-1], assignment, variables));
 
-    int u1_j = nodeToInt(r_t_prev);
+    int u1_j = getIntFromNode(r_t_prev);
     int u2_j = u1_j+1;
-    while (u2_j % m_int != nodeToInt(r_t_prev) % m_int)
+    while (u2_j % m_int != getIntFromNode(r_t_prev) % m_int)
     {
       u2_j++;
     }
@@ -435,7 +409,7 @@ void OrderingEngine::getCombinationsRec(
     return;
   }
 
-  for (int j = start; j <= end; j++)
+  for (int j = start; j <= end; ++j)
   {
     assignment[index] = j;
     getCombinationsRec(assignment, combinations, index + 1, r, j, end);

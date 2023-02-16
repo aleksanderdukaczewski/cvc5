@@ -27,7 +27,6 @@
 #include "util/string.h"
 
 #include "expr/node_algorithm.h"
-#include "expr/node_algorithm_qe.h"
 #include "expr/ordering_engine.h"
 #include "expr/normalization_engine.h"
 
@@ -54,12 +53,12 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
   {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
     Trace("smt-qe") << "Node q: " << q <<  " of kind " << q.getKind() << std::endl;
-
-    Node rewrittenExpr = expr::rewrite_qe(q[2]);
+    NormalizationEngine ne(d_env.getRewriter());
+    Node rewrittenExpr = ne.rewrite_qe(q[2]);
     Trace("smt-qe") << "Rewritten expr: " << rewrittenExpr << std::endl;
 
     // ensure the body is rewritten
-    rewrittenExpr = expr::simplifyModuloConstraints(rewrittenExpr, d_env.getRewriter());
+    rewrittenExpr = ne.simplifyModuloConstraints(rewrittenExpr);
     q = nm->mkNode(q.getKind(), q[0], q[1], rewrittenExpr);
     Trace("smt-qe") << "expr after simplifying modulo constraints: " << rewrittenExpr << std::endl;
 
