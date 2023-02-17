@@ -1795,6 +1795,19 @@ boundVarList[cvc5::Term& expr]
    }
  ;
 
+boundVarSingle[cvc5::Term& expr]
+       @declarations {
+         std::string name;
+         cvc5::Sort t;
+       }
+       : LPAREN_TOK symbol[name,CHECK_NONE,SYM_VARIABLE]
+        sortSymbol[t] RPAREN_TOK
+       {
+          cvc5::Term bv = PARSER_STATE->bindBoundVar(name,t);
+          expr = MK_TERM(cvc5::VARIABLE, bv);
+       }
+     ;
+
 /**
  * Matches the sort symbol, which can be an arbitrary symbol.
  * @param check the check to perform on the name

@@ -83,7 +83,7 @@ Node OrderingEngine::orderingToNode(Ordering& ord)
   NodeManager* nm = NodeManager::currentNM();
   if (ord.terms.size() == 1)
   {
-   return ord.terms[0];
+    return ord.terms[0];
   }
   else
   {
@@ -299,7 +299,8 @@ Node OrderingEngine::evaluateOrdering(
     Integer& m)
 {
   NodeManager* nm = NodeManager::currentNM();
-  Node bigGamma = nm->mkNode(AND, assignResidueClass(assignment, variables, m), orderingToNode(ord));
+  Node bigGamma = nm->mkNode(
+      AND, assignResidueClass(assignment, variables, m), orderingToNode(ord));
   Node conj = nm->mkNode(
       AND, nm->mkNode(kind::EXISTS_EXACTLY, q[0], q[1], segment), bigGamma);
 
@@ -311,9 +312,10 @@ Node OrderingEngine::evaluateOrdering(
   return ret;
 }
 
-Node OrderingEngine::getTermAssignment(Node t,
-                       std::unordered_map<std::string, Node>& assignment,
-                       std::vector<Node>& variables)
+Node OrderingEngine::getTermAssignment(
+    Node t,
+    std::unordered_map<std::string, Node>& assignment,
+    std::vector<Node>& variables)
 {
   for (Node& var : variables)
   {
@@ -362,9 +364,10 @@ bool OrderingEngine::countSolutions(
   {
     Node seg = nm->mkNode(EQUAL, q[0][0], pairwise_ne_t[j]);
     Node evaluated_ord =
-         evaluateOrdering(q, ord, seg, assignment, variables, m);
+        evaluateOrdering(q, ord, seg, assignment, variables, m);
 
-    TNode r_t = d_rewriter->rewrite(getTermAssignment(pairwise_ne_t[j], assignment, variables));
+    TNode r_t = d_rewriter->rewrite(
+        getTermAssignment(pairwise_ne_t[j], assignment, variables));
     evaluated_ord = evaluated_ord.substitute(q[0][0], r_t);
 
     c[j] = (d_rewriter->rewrite(evaluated_ord) == trueNode) ? 1 : 0;
@@ -378,29 +381,32 @@ bool OrderingEngine::countSolutions(
     for (int i = 0; i < m.getSignedInt(); ++i)
     {
       TNode i_node = nm->mkConstInt(i);
-      if (d_rewriter->rewrite(evaluated_ord.substitute(q[0][0], i_node)) == trueNode)
+      if (d_rewriter->rewrite(evaluated_ord.substitute(q[0][0], i_node))
+          == trueNode)
       {
-       p[j]++;
+        p[j]++;
       }
     }
 
-    TNode r_t_prev = d_rewriter->rewrite(getTermAssignment(pairwise_ne_t[j-1], assignment, variables));
+    TNode r_t_prev = d_rewriter->rewrite(
+        getTermAssignment(pairwise_ne_t[j - 1], assignment, variables));
 
     int u1_j = extractInt(r_t_prev);
-    int u2_j = u1_j+1;
+    int u2_j = u1_j + 1;
     while (u2_j % m_int != extractInt(r_t_prev) % m_int)
     {
       u2_j++;
     }
 
     int r_j_prime = 0;
-    for (int i = u1_j+1; i <= u2_j-1; ++i)
+    for (int i = u1_j + 1; i <= u2_j - 1; ++i)
     {
       Node i_node = nm->mkConstInt(Rational(i));
       TNode temp = i_node;
-      if (d_rewriter->rewrite(evaluated_ord.substitute(q[0][0], temp)) == trueNode)
+      if (d_rewriter->rewrite(evaluated_ord.substitute(q[0][0], temp))
+          == trueNode)
       {
-       r_j_prime++;
+        r_j_prime++;
       }
     }
 

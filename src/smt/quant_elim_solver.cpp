@@ -54,10 +54,10 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
     Trace("smt-qe") << "Node q: " << q;
     NormalizationEngine ne(d_env.getRewriter());
+    // Rewrite the expression
     Node rewrittenExpr = ne.rewrite_qe(q[2]);
     Trace("smt-qe") << "Rewritten expr: " << rewrittenExpr << std::endl;
 
-    // ensure the body is rewritten
     rewrittenExpr = ne.simplifyModuloConstraints(rewrittenExpr);
     q = nm->mkNode(q.getKind(), q[0], q[1], rewrittenExpr);
     Trace("smt-qe") << "expr after simplifying modulo constraints: " << rewrittenExpr << std::endl;
