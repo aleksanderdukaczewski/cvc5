@@ -65,23 +65,13 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::pair<Node, std::vector<Node>> normalised_p = ne.normalizeFormula(q);
     q = normalised_p.first;
     std::vector<Node> terms_v = normalised_p.second;
-
-    for (int i = 0; i < terms_v.size(); ++i)
-    {
-      terms_v[i] = rewrite(terms_v[i]);
-    }
-
     Trace("smt-qe") << "QuantElimSolver: after normalising the formula : " << q
-                    << std::endl
-                    << "set terms_v: " << terms_v << std::endl;
+                    << std::endl << "terms_v = " << terms_v << std::endl;
 
     OrderingEngine ordEng(d_env.getRewriter());
     std::vector<Ordering> orderings = ordEng.computeOrderings(terms_v);
     Trace("smt-qe") << "orderings: " << ordEng.familyToNodes(orderings)
                     << std::endl;
-
-    std::unordered_set<Node> Z;
-    expr::getSymbols(q, Z);
 
     std::unordered_set<Node> moduli;
     expr::getModuli(q, moduli);
@@ -92,19 +82,23 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       m = m.lcm(mod_i);
     }
 
+    std::unordered_set<Node> Z;
     std::vector<Node> Z_vect;
+    expr::getSymbols(q, Z);
     std::copy(Z.begin(), Z.end(), std::back_inserter(Z_vect));
-
+    Trace("smt-qe") << "variables in the formula = " << Z_vect << std::endl;
     std::vector<std::unordered_map<std::string, Node>> mappings =
         ordEng.generateResidueClassMappings(3, Z_vect);
+    Node falseNode = nm->mkConst<bool>(false);
 
+    Node ret = falseNode;
     for (auto& ord: orderings)
     {
-      for (auto& residue_class: mappings)
+      for (auto& residue_class : mappings)
       {
         Ordering processed_ord = ordEng.makePairwiseNonEqual(ord);
         int l = processed_ord.terms.size();
-        std::vector<int> p(l,0), r(l,0), c(l,0);
+        std::vector<int> p(l, 0), r(l, 0), c(l, 0);
         if (!ordEng.countSolutions(ord, residue_class, Z_vect, m, q, p, r, c))
         {
           continue;
@@ -130,14 +124,16 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         {
           sum2 = nm->mkNode(ADD, sum2, nm->mkConstInt(c[j]));
         }
-
-        Node phi = nm->mkNode(
+        Node bigGamma = nm->mkNode(AND, ordEng.assignResidueClass(residue_class, Z_vect, m), ordEng.orderingToNode(ord));
+        Node disjunct = nm->mkNode(AND, bigGamma, nm->mkNode(
             EQUAL,
             nm->mkNode(MULT, nm->mkConstInt(m), q[1]),
-            nm->mkNode(ADD, sum1, nm->mkNode(MULT, nm->mkConstInt(m), sum2)));
+            nm->mkNode(ADD, sum1, nm->mkNode(MULT, nm->mkConstInt(m), sum2))));
+
+        ret = (ret == falseNode) ? disjunct : nm->mkNode(OR, disjunct, ret);
       }
     }
-    return q;
+    return ret;
   }
   else
   {

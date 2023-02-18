@@ -192,7 +192,8 @@ Node OrderingEngine::assignResidueClass(
     Integer m)
 {
   NodeManager* nm = NodeManager::currentNM();
-  Node ret = nm->mkConst<bool>(true);
+  Node trueNode = nm->mkConst<bool>(true);
+  Node ret = trueNode;
 
   for (Node& var : variables)
   {
@@ -201,7 +202,8 @@ Node OrderingEngine::assignResidueClass(
         EQUAL,
         nm->mkNode(INTS_MODULUS, assigned_var, nm->mkConstInt(Rational(m))),
         nm->mkNode(INTS_MODULUS, var, nm->mkConstInt(Rational(m))));
-    ret = nm->mkNode(AND, ret, modulo_constraint);
+    ret = (ret == trueNode) ? modulo_constraint
+                          : nm->mkNode(AND, ret, modulo_constraint);
   }
 
   return ret;

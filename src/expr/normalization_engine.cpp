@@ -98,7 +98,7 @@ Node NormalizationEngine::normalizeCoefficients(Node& n,
       bv_free_n =
           nm->mkNode(MULT, nm->mkConstInt(Rational(term_coef)), bv_free_n);
     }
-    T.push_back(nm->mkNode(NEG, bv_free_n));
+    T.push_back(d_rewriter->rewrite(nm->mkNode(NEG, bv_free_n)));
 
     Node lhs = a.strictlyPositive()
                    ? nm->mkNode(ADD, bv_node, bv_free_n)
