@@ -245,7 +245,7 @@ bool isBooleanConnective(TNode cur);
 bool isTheoryAtom(TNode cur);
 
 /**
- * Get all moduli appearing in the expression n
+ * Get all moduli q appearing in the expression n in terms of the form (= (mod a q) (mod b q))
  * @param n
  * @param s_mod
  */

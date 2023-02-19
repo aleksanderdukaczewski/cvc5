@@ -62,9 +62,8 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     q = nm->mkNode(q.getKind(), q[0], q[1], rewrittenExpr);
     Trace("smt-qe") << "expr after simplifying modulo constraints: " << rewrittenExpr << std::endl;
 
-    std::pair<Node, std::vector<Node>> normalised_p = ne.normalizeFormula(q);
-    q = normalised_p.first;
-    std::vector<Node> terms_v = normalised_p.second;
+    std::vector<Node> terms_v;
+    q = ne.normalizeFormula(q, terms_v);
     Trace("smt-qe") << "QuantElimSolver: after normalising the formula : " << q
                     << std::endl << "terms_v = " << terms_v << std::endl;
 
