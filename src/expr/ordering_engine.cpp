@@ -12,6 +12,32 @@ using namespace cvc5::internal::kind;
 
 namespace cvc5::internal {
 
+Node Ordering::getNode()
+{
+  Node n;
+  NodeManager* nm = NodeManager::currentNM();
+  if (terms.size() == 1)
+  {
+    return terms[0];
+  }
+  else
+  {
+    for (int i = 1; i < terms.size(); ++i)
+    {
+      Node RHS = nm->mkNode(rels[i - 1], terms[i - 1], terms[i]);
+      if (i == 1)
+      {
+        n = RHS;
+      }
+      else
+      {
+        n = nm->mkNode(kind::AND, n, RHS);
+      }
+    }
+    return n;
+  }
+}
+
 OrderingEngine::OrderingEngine(theory::Rewriter* rewriter) : d_rewriter(rewriter) {}
 
 OrderingEngine::~OrderingEngine() {}
@@ -77,38 +103,12 @@ std::vector<Ordering> OrderingEngine::computeFamily(
   return fam;
 }
 
-Node OrderingEngine::orderingToNode(Ordering& ord)
-{
-  Node n;
-  NodeManager* nm = NodeManager::currentNM();
-  if (ord.terms.size() == 1)
-  {
-    return ord.terms[0];
-  }
-  else
-  {
-    for (int i = 1; i < ord.terms.size(); ++i)
-    {
-      Node RHS = nm->mkNode(ord.rels[i - 1], ord.terms[i - 1], ord.terms[i]);
-      if (i == 1)
-      {
-        n = RHS;
-      }
-      else
-      {
-        n = nm->mkNode(kind::AND, n, RHS);
-      }
-    }
-    return n;
-  }
-}
-
 std::vector<Node> OrderingEngine::familyToNodes(std::vector<Ordering>& fam)
 {
   std::vector<Node> nodes;
   for (Ordering& ord : fam)
   {
-    nodes.push_back(orderingToNode(ord));
+    nodes.push_back(ord.getNode());
   }
   return nodes;
 }
@@ -116,7 +116,7 @@ std::vector<Node> OrderingEngine::familyToNodes(std::vector<Ordering>& fam)
 bool OrderingEngine::satisfiableOrdering(Ordering& ord)
 {
   SolverEngine se;
-  return se.checkSat(orderingToNode(ord)) == Result::SAT;
+  return se.checkSat(ord.getNode()) == Result::SAT;
 }
 
 Ordering OrderingEngine::makePairwiseNonEqual(Ordering& ord)
@@ -138,24 +138,24 @@ Ordering OrderingEngine::makePairwiseNonEqual(Ordering& ord)
   return new_ord;
 }
 
-std::vector<Node> OrderingEngine::getSegments(Node& bound_var, Ordering& ord)
+std::vector<Node> OrderingEngine::getSegments(Node& bv, Ordering& ord)
 {
   std::vector<Node> segments;
   NodeManager* nm = NodeManager::currentNM();
   Ordering new_ord = makePairwiseNonEqual(ord);
 
-  segments.push_back(nm->mkNode(LT, bound_var, new_ord.terms[0]));
-  segments.push_back(nm->mkNode(EQUAL, bound_var, new_ord.terms[0]));
+  segments.push_back(nm->mkNode(LT, bv, new_ord.terms[0]));
+  segments.push_back(nm->mkNode(EQUAL, bv, new_ord.terms[0]));
   for (int i = 1; i < new_ord.terms.size(); ++i)
   {
     segments.push_back(
         nm->mkNode(AND,
-                   nm->mkNode(LT, new_ord.terms[i - 1], bound_var),
-                   nm->mkNode(LT, bound_var, new_ord.terms[i])));
-    segments.push_back(nm->mkNode(EQUAL, bound_var, new_ord.terms[i]));
+                   nm->mkNode(LT, new_ord.terms[i - 1], bv),
+                   nm->mkNode(LT, bv, new_ord.terms[i])));
+    segments.push_back(nm->mkNode(EQUAL, bv, new_ord.terms[i]));
   }
   segments.push_back(
-      nm->mkNode(LT, new_ord.terms[new_ord.terms.size() - 1], bound_var));
+      nm->mkNode(LT, new_ord.terms[new_ord.terms.size() - 1], bv));
 
   return segments;
 }
@@ -230,41 +230,42 @@ void OrderingEngine::getCombinationsRec(
   }
 }
 
-Node OrderingEngine::evaluateInequalities(Node& conj, Node cur, Node& q)
+Node OrderingEngine::evaluateInequalities(Node& conj, Node curr, Node& q)
 {
   SolverEngine se;
   NodeManager* nm = NodeManager::currentNM();
 
-  if (cur.getKind() == LT)
+  if (curr.getKind() == LT)
   {
     se.assertFormula(conj);
-    Result isSat = se.checkSat(nm->mkNode(EXISTS_EXACTLY, q[0], q[1], cur));
+    Result isSat = se.checkSat(nm->mkNode(EXISTS_EXACTLY, q[0], q[1], curr));
     return nm->mkConst<bool>(isSat == Result::SAT);
   }
 
-  NodeBuilder nb(cur.getKind());
-  for (int i = 0; i < cur.getNumChildren(); ++i)
+  NodeBuilder nb(curr.getKind());
+  for (int i = 0; i < curr.getNumChildren(); ++i)
   {
-    nb << (cur[i].getNumChildren() > 0 ? evaluateInequalities(conj, cur[i], q)
-                                       : cur[i]);
+    nb << (curr[i].getNumChildren() > 0 ? evaluateInequalities(conj, curr[i], q)
+                                       : curr[i]);
   }
   Node ret = nb;
   return ret;
 }
 
-Node OrderingEngine::evaluateModuloConstraints(Node& conj, Node cur, Node& q)
+Node OrderingEngine::evaluateModuloConstraints(Node& conj, Node curr, Node& q)
 {
   NodeManager* nm = NodeManager::currentNM();
-  if (cur.getKind() == EQUAL
-      && (cur[0].getKind() == INTS_MODULUS || cur[1].getKind() == INTS_MODULUS))
+  Node bv = q[0][0];
+  if (curr.getKind() == EQUAL
+      && (curr[0].getKind() == INTS_MODULUS || curr[1].getKind() == INTS_MODULUS))
   {
     std::unordered_set<Node> syms;
-    expr::getSymbols(cur, syms);
-    if (syms.find(q[0][0]) == syms.end())
+    expr::getSymbols(curr, syms);
+    if (syms.find(bv) == syms.end())
     {
       SolverEngine se;
       if (se.checkSat(nm->mkNode(
-              EXISTS_EXACTLY, q[0], q[1], nm->mkNode(AND, conj, cur)))
+              EXISTS_EXACTLY, q[0], q[1], nm->mkNode(AND, conj, curr)))
           == Result::SAT)
       {
         return nm->mkConst<bool>(true);
@@ -276,16 +277,16 @@ Node OrderingEngine::evaluateModuloConstraints(Node& conj, Node cur, Node& q)
     }
     else
     {
-      return cur;
+      return curr;
     }
   }
 
-  NodeBuilder nb(cur.getKind());
-  for (int i = 0; i < cur.getNumChildren(); ++i)
+  NodeBuilder nb(curr.getKind());
+  for (int i = 0; i < curr.getNumChildren(); ++i)
   {
-    nb << (cur[i].getNumChildren() > 0
-               ? evaluateModuloConstraints(conj, cur[i], q)
-               : cur[i]);
+    nb << (curr[i].getNumChildren() > 0
+               ? evaluateModuloConstraints(conj, curr[i], q)
+               : curr[i]);
   }
 
   Node ret = nb;
@@ -302,7 +303,7 @@ Node OrderingEngine::evaluateOrdering(
 {
   NodeManager* nm = NodeManager::currentNM();
   Node bigGamma = nm->mkNode(
-      AND, assignResidueClass(assignment, variables, m), orderingToNode(ord));
+      AND, assignResidueClass(assignment, variables, m), ord.getNode());
   Node conj = nm->mkNode(
       AND, nm->mkNode(kind::EXISTS_EXACTLY, q[0], q[1], segment), bigGamma);
 
@@ -315,20 +316,20 @@ Node OrderingEngine::evaluateOrdering(
 }
 
 Node OrderingEngine::getTermAssignment(
-    Node t,
+    Node n,
     std::unordered_map<std::string, Node>& assignment,
     std::vector<Node>& variables)
 {
   for (Node& var : variables)
   {
     TNode residue_class = assignment.at(var.toString());
-    t = t.substitute(var, residue_class);
+    n = n.substitute(var, residue_class);
   }
 
-  return t;
+  return n;
 }
 
-int extractInt(TNode& n)
+int OrderingEngine::extractInt(TNode& n)
 {
   return n.getConst<Rational>().getNumerator().getSignedInt();
 }
@@ -346,12 +347,12 @@ bool OrderingEngine::countSolutions(
   NodeManager* nm = NodeManager::currentNM();
   SolverEngine se;
   Node trueNode = nm->mkConst<bool>(true);
-  std::vector<Node> pairwise_ne_t = makePairwiseNonEqual(ord).terms;
-  int l = pairwise_ne_t.size();
+  std::vector<Node> processed_t = makePairwiseNonEqual(ord).terms;
+  int l = processed_t.size();
   int m_int = m.getSignedInt();
 
-  std::pair<Node, Node> segs(nm->mkNode(LT, q[0][0], pairwise_ne_t[0]),
-                             nm->mkNode(LT, pairwise_ne_t[l - 1], q[0][0]));
+  std::pair<Node, Node> segs(nm->mkNode(LT, q[0][0], processed_t[0]),
+                             nm->mkNode(LT, processed_t[l - 1], q[0][0]));
   if (se.checkSat(
           evaluateOrdering(q, ord, segs.first, assignment, variables, m))
           == Result::SAT
@@ -364,12 +365,12 @@ bool OrderingEngine::countSolutions(
 
   for (int j = 0; j < l; ++j)
   {
-    Node seg = nm->mkNode(EQUAL, q[0][0], pairwise_ne_t[j]);
+    Node seg = nm->mkNode(EQUAL, q[0][0], processed_t[j]);
     Node evaluated_ord =
         evaluateOrdering(q, ord, seg, assignment, variables, m);
 
     TNode r_t = d_rewriter->rewrite(
-        getTermAssignment(pairwise_ne_t[j], assignment, variables));
+        getTermAssignment(processed_t[j], assignment, variables));
     evaluated_ord = evaluated_ord.substitute(q[0][0], r_t);
 
     c[j] = (d_rewriter->rewrite(evaluated_ord) == trueNode) ? 1 : 0;
@@ -377,8 +378,8 @@ bool OrderingEngine::countSolutions(
     if (j == 0) continue;
 
     seg = nm->mkNode(AND,
-                     nm->mkNode(LT, pairwise_ne_t[j - 1], q[0][0]),
-                     nm->mkNode(LT, q[0][0], pairwise_ne_t[j]));
+                     nm->mkNode(LT, processed_t[j - 1], q[0][0]),
+                     nm->mkNode(LT, q[0][0], processed_t[j]));
 
     for (int i = 0; i < m.getSignedInt(); ++i)
     {
@@ -391,7 +392,7 @@ bool OrderingEngine::countSolutions(
     }
 
     TNode r_t_prev = d_rewriter->rewrite(
-        getTermAssignment(pairwise_ne_t[j - 1], assignment, variables));
+        getTermAssignment(processed_t[j - 1], assignment, variables));
 
     int u1_j = extractInt(r_t_prev);
     int u2_j = u1_j + 1;

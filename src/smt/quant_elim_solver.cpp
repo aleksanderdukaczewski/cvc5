@@ -87,9 +87,9 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::copy(Z.begin(), Z.end(), std::back_inserter(Z_vect));
     Trace("smt-qe") << "variables in the formula = " << Z_vect << std::endl;
     std::vector<std::unordered_map<std::string, Node>> mappings =
-        ordEng.generateResidueClassMappings(3, Z_vect);
-    Node falseNode = nm->mkConst<bool>(false);
+        OrderingEngine::generateResidueClassMappings(3, Z_vect);
 
+    Node falseNode = nm->mkConst<bool>(false);
     Node ret = falseNode;
     for (auto& ord: orderings)
     {
@@ -123,7 +123,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         {
           sum2 = nm->mkNode(ADD, sum2, nm->mkConstInt(c[j]));
         }
-        Node bigGamma = nm->mkNode(AND, ordEng.assignResidueClass(residue_class, Z_vect, m), ordEng.orderingToNode(ord));
+        Node bigGamma = nm->mkNode(AND, ordEng.assignResidueClass(residue_class, Z_vect, m), ord.getNode());
         Node disjunct = nm->mkNode(AND, bigGamma, nm->mkNode(
             EQUAL,
             nm->mkNode(MULT, nm->mkConstInt(m), q[1]),
