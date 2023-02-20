@@ -2,7 +2,7 @@
 // Created by Aleksander Dukaczewski on 30/01/2023.
 //
 
-#include "expr/ordering_engine.h"
+#include "expr/solution_counter.h"
 
 #include "expr/node_algorithm.h"
 #include "smt/solver_engine.h"
@@ -38,11 +38,11 @@ Node Ordering::getNode()
   }
 }
 
-OrderingEngine::OrderingEngine(theory::Rewriter* rewriter) : d_rewriter(rewriter) {}
+SolutionCounter::SolutionCounter(theory::Rewriter* rewriter) : d_rewriter(rewriter) {}
 
-OrderingEngine::~OrderingEngine() {}
+SolutionCounter::~SolutionCounter() {}
 
-std::vector<Ordering> OrderingEngine::computeOrderings(std::vector<Node>& terms)
+std::vector<Ordering> SolutionCounter::computeOrderings(std::vector<Node>& terms)
 {
   std::vector<Ordering> fam;
   for (int j = 1; j <= terms.size(); ++j)
@@ -53,7 +53,7 @@ std::vector<Ordering> OrderingEngine::computeOrderings(std::vector<Node>& terms)
   return fam;
 }
 
-std::vector<Ordering> OrderingEngine::computeFamily(
+std::vector<Ordering> SolutionCounter::computeFamily(
     int j, std::vector<Ordering>& prev_fam, std::vector<Node>& terms)
 {
   std::vector<Ordering> fam;
@@ -103,7 +103,7 @@ std::vector<Ordering> OrderingEngine::computeFamily(
   return fam;
 }
 
-std::vector<Node> OrderingEngine::familyToNodes(std::vector<Ordering>& fam)
+std::vector<Node> SolutionCounter::familyToNodes(std::vector<Ordering>& fam)
 {
   std::vector<Node> nodes;
   for (Ordering& ord : fam)
@@ -113,13 +113,13 @@ std::vector<Node> OrderingEngine::familyToNodes(std::vector<Ordering>& fam)
   return nodes;
 }
 
-bool OrderingEngine::satisfiableOrdering(Ordering& ord)
+bool SolutionCounter::satisfiableOrdering(Ordering& ord)
 {
   SolverEngine se;
   return se.checkSat(ord.getNode()) == Result::SAT;
 }
 
-Ordering OrderingEngine::makePairwiseNonEqual(Ordering& ord)
+Ordering SolutionCounter::makePairwiseNonEqual(Ordering& ord)
 {
   std::vector<Node> terms;
   std::vector<Kind_t> rels;
@@ -138,7 +138,7 @@ Ordering OrderingEngine::makePairwiseNonEqual(Ordering& ord)
   return new_ord;
 }
 
-std::vector<Node> OrderingEngine::getSegments(Node& bv, Ordering& ord)
+std::vector<Node> SolutionCounter::getSegments(Node& bv, Ordering& ord)
 {
   std::vector<Node> segments;
   NodeManager* nm = NodeManager::currentNM();
@@ -161,7 +161,7 @@ std::vector<Node> OrderingEngine::getSegments(Node& bv, Ordering& ord)
 }
 
 std::vector<std::unordered_map<std::string, Node>>
-OrderingEngine::generateResidueClassMappings(int range,
+SolutionCounter::generateResidueClassMappings(int range,
                                              std::vector<Node>& variables)
 {
   std::vector<std::vector<int>> combinations;
@@ -186,7 +186,7 @@ OrderingEngine::generateResidueClassMappings(int range,
   return mappings;
 }
 
-Node OrderingEngine::assignResidueClass(
+Node SolutionCounter::assignResidueClass(
     std::unordered_map<std::string, Node> assignment,
     std::vector<Node> variables,
     Integer m)
@@ -209,7 +209,7 @@ Node OrderingEngine::assignResidueClass(
   return ret;
 }
 
-void OrderingEngine::getCombinationsRec(
+void SolutionCounter::getCombinationsRec(
     std::vector<int> assignment,
     std::vector<std::vector<int>>& combinations,
     int index,
@@ -230,7 +230,7 @@ void OrderingEngine::getCombinationsRec(
   }
 }
 
-Node OrderingEngine::evaluateInequalities(Node& conj, Node curr, Node& q)
+Node SolutionCounter::evaluateInequalities(Node& conj, Node curr, Node& q)
 {
   SolverEngine se;
   NodeManager* nm = NodeManager::currentNM();
@@ -252,7 +252,7 @@ Node OrderingEngine::evaluateInequalities(Node& conj, Node curr, Node& q)
   return ret;
 }
 
-Node OrderingEngine::evaluateModuloConstraints(Node& conj, Node curr, Node& q)
+Node SolutionCounter::evaluateModuloConstraints(Node& conj, Node curr, Node& q)
 {
   NodeManager* nm = NodeManager::currentNM();
   Node bv = q[0][0];
@@ -293,7 +293,7 @@ Node OrderingEngine::evaluateModuloConstraints(Node& conj, Node curr, Node& q)
   return ret;
 }
 
-Node OrderingEngine::evaluateOrdering(
+Node SolutionCounter::evaluateOrdering(
     Node& q,
     Ordering& ord,
     Node& segment,
@@ -315,7 +315,7 @@ Node OrderingEngine::evaluateOrdering(
   return ret;
 }
 
-Node OrderingEngine::getTermAssignment(
+Node SolutionCounter::getTermAssignment(
     Node n,
     std::unordered_map<std::string, Node>& assignment,
     std::vector<Node>& variables)
@@ -329,12 +329,12 @@ Node OrderingEngine::getTermAssignment(
   return n;
 }
 
-int OrderingEngine::extractInt(TNode& n)
+int SolutionCounter::extractInt(TNode& n)
 {
   return n.getConst<Rational>().getNumerator().getSignedInt();
 }
 
-bool OrderingEngine::countSolutions(
+bool SolutionCounter::countSolutions(
     Ordering& ord,
     std::unordered_map<std::string, Node>& assignment,
     std::vector<Node>& variables,

@@ -1,7 +1,7 @@
 #include "normalization_engine.h"
 
 #include "expr/node_algorithm.h"
-#include "expr/ordering_engine.h"
+#include "expr/solution_counter.h"
 #include "util/rational.h"
 
 using namespace cvc5::internal::kind;
@@ -236,12 +236,12 @@ Node NormalizationEngine::processModuloConstraint(Node& n)
 
   int mod_rhs = n[0][1].getConst<Rational>().getNumerator().getSignedInt();
   std::vector<std::unordered_map<std::string, Node>> residueClasses =
-      OrderingEngine::generateResidueClassMappings(mod_rhs, vars_v);
+      SolutionCounter::generateResidueClassMappings(mod_rhs, vars_v);
 
   Node ret = falseNode;
   for (auto& r : residueClasses)
   {
-    Node evaluated_term = OrderingEngine::getTermAssignment(n, r, vars_v);
+    Node evaluated_term = SolutionCounter::getTermAssignment(n, r, vars_v);
     evaluated_term = d_rewriter->rewrite(evaluated_term);
     if (d_rewriter->rewrite(evaluated_term) == falseNode)
     {

@@ -22,11 +22,11 @@ struct Ordering
   Node getNode();
 };
 
-class OrderingEngine
+class SolutionCounter
 {
  public:
-  OrderingEngine(theory::Rewriter* d_rewriter);
-  ~OrderingEngine();
+  SolutionCounter(theory::Rewriter* d_rewriter);
+  ~SolutionCounter();
 
   /**
    * Convert all orderings in the vector fam to nodes

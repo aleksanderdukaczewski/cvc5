@@ -16,7 +16,10 @@
 #include "smt/quant_elim_solver.h"
 
 #include "base/modal_exception.h"
+#include "expr/node_algorithm.h"
+#include "expr/normalization_engine.h"
 #include "expr/skolem_manager.h"
+#include "expr/solution_counter.h"
 #include "expr/subs.h"
 #include "expr/subtype_elim_node_converter.h"
 #include "smt/smt_driver.h"
@@ -25,10 +28,6 @@
 #include "theory/quantifiers_engine.h"
 #include "theory/theory_engine.h"
 #include "util/string.h"
-
-#include "expr/node_algorithm.h"
-#include "expr/ordering_engine.h"
-#include "expr/normalization_engine.h"
 
 using namespace cvc5::internal::theory;
 using namespace cvc5::internal::kind;
@@ -67,9 +66,9 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     Trace("smt-qe") << "QuantElimSolver: after normalising the formula : " << q
                     << std::endl << "terms_v = " << terms_v << std::endl;
 
-    OrderingEngine ordEng(d_env.getRewriter());
-    std::vector<Ordering> orderings = ordEng.computeOrderings(terms_v);
-    Trace("smt-qe") << "orderings: " << ordEng.familyToNodes(orderings)
+    SolutionCounter sc(d_env.getRewriter());
+    std::vector<Ordering> orderings = sc.computeOrderings(terms_v);
+    Trace("smt-qe") << "orderings: " << sc.familyToNodes(orderings)
                     << std::endl;
 
     std::unordered_set<Node> moduli;
@@ -87,7 +86,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::copy(Z.begin(), Z.end(), std::back_inserter(Z_vect));
     Trace("smt-qe") << "variables in the formula = " << Z_vect << std::endl;
     std::vector<std::unordered_map<std::string, Node>> mappings =
-        OrderingEngine::generateResidueClassMappings(3, Z_vect);
+        SolutionCounter::generateResidueClassMappings(3, Z_vect);
 
     Node falseNode = nm->mkConst<bool>(false);
     Node ret = falseNode;
@@ -95,10 +94,10 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     {
       for (auto& residue_class : mappings)
       {
-        Ordering processed_ord = ordEng.makePairwiseNonEqual(ord);
+        Ordering processed_ord = sc.makePairwiseNonEqual(ord);
         int l = processed_ord.terms.size();
         std::vector<int> p(l, 0), r(l, 0), c(l, 0);
-        if (!ordEng.countSolutions(ord, residue_class, Z_vect, m, q, p, r, c))
+        if (!sc.countSolutions(ord, residue_class, Z_vect, m, q, p, r, c))
         {
           continue;
         }
@@ -123,7 +122,8 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         {
           sum2 = nm->mkNode(ADD, sum2, nm->mkConstInt(c[j]));
         }
-        Node bigGamma = nm->mkNode(AND, ordEng.assignResidueClass(residue_class, Z_vect, m), ord.getNode());
+        Node bigGamma = nm->mkNode(AND,
+                       sc.assignResidueClass(residue_class, Z_vect, m), ord.getNode());
         Node disjunct = nm->mkNode(AND, bigGamma, nm->mkNode(
             EQUAL,
             nm->mkNode(MULT, nm->mkConstInt(m), q[1]),

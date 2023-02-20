@@ -67,8 +67,8 @@ libcvc5_add_sources(
   oracle.h
   oracle_caller.cpp
   oracle_caller.h
-  ordering_engine.cpp
-  ordering_engine.h
+        solution_counter.cpp
+        solution_counter.h
   sequence.cpp
   sequence.h
   node_visitor.h
