@@ -54,20 +54,20 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     Trace("smt-qe") << "Node q: " << q;
     NormalizationEngine ne(d_env.getRewriter());
     // Rewrite the expression
-    Node rewrittenExpr = ne.rewrite_qe(q[2]);
+    Node rewrittenExpr = ne.rewriteQe(q[2]);
     Trace("smt-qe") << "Rewritten expr: " << rewrittenExpr << std::endl;
 
     rewrittenExpr = ne.simplifyModuloConstraints(rewrittenExpr);
     q = nm->mkNode(q.getKind(), q[0], q[1], rewrittenExpr);
     Trace("smt-qe") << "expr after simplifying modulo constraints: " << rewrittenExpr << std::endl;
 
-    std::vector<Node> terms_v;
-    q = ne.normalizeFormula(q, terms_v);
+    std::unordered_set<Node> terms_s;
+    q = ne.normalizeFormula(q, terms_s);
     Trace("smt-qe") << "QuantElimSolver: after normalising the formula : " << q
-                    << std::endl << "terms_v = " << terms_v << std::endl;
+                    << std::endl << "terms_s = " << terms_s << std::endl;
 
     SolutionCounter sc(d_env.getRewriter());
-    std::vector<Ordering> orderings = sc.computeOrderings(terms_v);
+    std::vector<Ordering> orderings = sc.computeOrderings(terms_s);
     Trace("smt-qe") << "orderings: " << sc.familyToNodes(orderings)
                     << std::endl;
 

@@ -1,5 +1,5 @@
-#include "normalization_engine.h"
 
+#include "normalization_engine.h"
 #include "expr/node_algorithm.h"
 #include "expr/solution_counter.h"
 #include "util/rational.h"
@@ -13,11 +13,11 @@ NormalizationEngine::NormalizationEngine(theory::Rewriter* rewriter) : d_rewrite
 
 NormalizationEngine::~NormalizationEngine() {}
 
-Node NormalizationEngine::normalizeFormula(Node& q, std::vector<Node>& terms_v)
+Node NormalizationEngine::normalizeFormula(Node& q,
+                                           std::unordered_set<Node>& terms_s)
 {
   NodeManager* nm = NodeManager::currentNM();
-  Node bv = q[0][0];
-  Node bounded_expr = q[2];
+  Node bv = q[0][0], bounded_expr = q[2];
 
   // Find all coefficients of the bound variable in q.
   std::unordered_set<Node> s_coefs;
@@ -25,19 +25,20 @@ Node NormalizationEngine::normalizeFormula(Node& q, std::vector<Node>& terms_v)
 
   // Calculate k, the lcm of the absolute values of all coefficients of bv.
   Integer k(1);
-  for (const auto& coef : s_coefs)
+  for (const Node& coef : s_coefs)
   {
     Integer coef_i = coef.getConst<Rational>().getNumerator().abs();
     k = k.lcm(coef_i);
   }
 
-  terms_v.push_back(nm->mkConstInt(0));
+  Trace("smt-qe") << "k = " << k << std::endl;
+  terms_s.insert(nm->mkConstInt(0));
 
   // Normalise the coefficients in the formula and conjunct it with a new simple
   // modulo constraint on the bound variable.
   Node normalized_expr =
       nm->mkNode(AND,
-                 normalizeCoefficients(bounded_expr, bv, k, terms_v),
+                 normalizeCoefficients(bounded_expr, bv, k, terms_s),
                  nm->mkNode(EQUAL,
                             nm->mkNode(INTS_MODULUS, bv, nm->mkConstInt(k)),
                             nm->mkConstInt(0)));
@@ -47,73 +48,74 @@ Node NormalizationEngine::normalizeFormula(Node& q, std::vector<Node>& terms_v)
   return q;
 }
 
-Integer NormalizationEngine::extractCoefficient(Node n, Node bv)
+Integer NormalizationEngine::extractInteger(Node n)
 {
-  if (!expr::hasBoundVar(n))
+  return n.getConst<Rational>().getNumerator();
+}
+
+Integer NormalizationEngine::extractCoefficient(Node n, Node& bv)
+{
+  // n is a negation of bv
+  if (n.getKind() == NEG && n[0] == bv)
   {
-    return Integer(0);
+    return Integer(-1);
+  }
+  // n is bv itself
+  else if (n == bv)
+  {
+    return Integer(1);
+  }
+  // n is bv multiplied by an integer constant;
+  else if (n.getKind() == MULT
+           && (n[0] == bv || n[1] == bv)
+           && (n[0].getKind() == CONST_INTEGER || n[1].getKind() == CONST_INTEGER))
+  {
+    return (bv == n[0]) ? extractInteger(n[1]) : extractInteger(n[0]);
   }
   else
   {
-    // n is a negation of bv
-    if (n.getKind() == NEG && n[0] == bv)
+    for (int i = 0; i < n.getNumChildren(); ++i)
     {
-      return Integer(-1);
-    }
-    // n is bv itself
-    else if (n == bv)
-    {
-      return Integer(1);
-    }
-    // n is bv multiplied by an integer constant;
-    else if (n.getKind() == MULT)
-    {
-      // bv is on the LHS, coefficient on RHS
-      if (bv == n[0])
+      Integer extracted_coef = extractCoefficient(n[i], bv);
+      if (hasBoundVar(n) &&  extracted_coef != Integer(0))
       {
-        return n[1].getConst<Rational>().getNumerator();
-      }
-      // bv is on the RHS, coefficient on LHS
-      else
-      {
-        return n[0].getConst<Rational>().getNumerator();
+        return extracted_coef;
       }
     }
-    else
-    {
-      return Integer(0);
-    }
+    return Integer(0);
   }
 }
 
 Node NormalizationEngine::normalizeCoefficients(Node& n,
                                                 Node& bv,
-                                                Integer& k,
-                                                std::vector<Node>& terms_v)
+                                                Integer& k, std::unordered_set<Node>& terms_s)
 {
   NodeManager* nm = NodeManager::currentNM();
   if (n.getKind() == LT)
   {
     Integer a = Integer(0);
-    Node bv_free_n = removeBoundVariable(n[0], bv, a);
+
+    Node bv_free_n = removeBoundVariable(d_rewriter->rewrite(n[0]), bv, a);
+
     if (a.isZero())
     {
-      terms_v.push_back(bv_free_n);
+      terms_s.insert(bv_free_n);
       return bv_free_n;
     }
+
     Integer term_coef = k.exactQuotient(a);
     if (!term_coef.isOne())
     {
       bv_free_n =
-          nm->mkNode(MULT, nm->mkConstInt(Rational(term_coef)), bv_free_n);
+          nm->mkNode(MULT, nm->mkConstInt(term_coef), bv_free_n);
     }
-    terms_v.push_back(d_rewriter->rewrite(nm->mkNode(NEG, bv_free_n)));
+    terms_s.insert(d_rewriter->rewrite(nm->mkNode(NEG, bv_free_n)));
 
     Node lhs = a.strictlyPositive()
                    ? nm->mkNode(ADD, bv, bv_free_n)
                    : nm->mkNode(SUB, nm->mkNode(NEG, bv), bv_free_n);
 
-    return nm->mkNode(LT, lhs, nm->mkConstInt(Rational(0)));
+    return nm->mkNode(LT, lhs, nm->mkConstInt(0));
   }
   else if (n.getKind() == EQUAL && n[0].getKind() == INTS_MODULUS
            && n[1].getKind() == CONST_INTEGER)
@@ -137,90 +139,78 @@ Node NormalizationEngine::normalizeCoefficients(Node& n,
     for (int i = 0; i < n.getNumChildren(); i++)
     {
       Node child = n[i];
-      nb << normalizeCoefficients(child, bv, k, terms_v);
+      nb << normalizeCoefficients(child, bv, k, terms_s);
     }
-    Node ret = nb;
 
-    return ret;
+    return nb;
   }
+}
+
+bool isMultipliedBoundVar(Node n, Node bv)
+{
+  return n.getKind() == MULT
+             && ((n[0] == bv
+                  && n[1].getKind() == CONST_INTEGER)
+                 || (n[1] == bv
+                     && n[0].getKind() == CONST_INTEGER));
 }
 
 Node NormalizationEngine::removeBoundVariable(Node n,
                                               Node bv,
                                               Integer& bv_coef)
 {
-  if (n.getNumChildren() > 0)
+  NodeManager* nm = NodeManager::currentNM();
+  Node zeroNode = nm->mkConstInt(0);
+  if (isMultipliedBoundVar(n, bv))
   {
-    if (n.getKind() == ADD || n.getKind() == SUB || n.getKind() == MULT
-        || n.getKind() == NEG)
-    {
-      NodeManager* nm = NodeManager::currentNM();
-      if (hasBoundVar(n[0]) || hasBoundVar(n[1]))
-      {
-        Node bv_term = hasBoundVar(n[0]) ? n[0] : n[1];
-        Node bv_free_term = hasBoundVar(n[0]) ? n[1] : n[0];
-        bv_coef = extractCoefficient(bv_term, bv);
-
-        if (n.getKind() == SUB)
-        {
-          if (hasBoundVar(n[0]))
-          {
-            return nm->mkNode(
-                NEG, removeBoundVariable(n[1], bv, bv_coef));
-          }
-          else
-          {
-            return nm->mkNode(
-                NEG, removeBoundVariable(n[0], bv, bv_coef));
-          }
-        }
-        else
-        {
-          return removeBoundVariable(bv_free_term, bv, bv_coef);
-        }
-      }
-      else if (n.getNumChildren() == 2)
-      {
-        return nm->mkNode(n.getKind(),
-                          removeBoundVariable(n[0], bv, bv_coef),
-                          removeBoundVariable(n[1], bv, bv_coef));
-      }
-      else
-      {
-        return nm->mkNode(n.getKind(),
-                          removeBoundVariable(n[0], bv, bv_coef));
-      }
-    }
+    Node coef_node = n[0] == bv ? n[1] : n[0];
+    bv_coef = extractInteger(coef_node);
+    return zeroNode;
+  }
+  else if (n == bv)
+  {
+    bv_coef = Integer(1);
+    return zeroNode;
+  }
+  else if (n.getNumChildren() == 0)
+  {
     return n;
   }
   else
   {
-    // A leaf node in the AST, CONST_INTEGER or VARIABLE that is
-    // guaranteed not to be the bound variable or a negation of it
-    return n;
+    NodeBuilder nb(n.getKind());
+    for (int i = 0; i < n.getNumChildren(); ++i)
+    {
+      nb << removeBoundVariable(n[i], bv, bv_coef);
+    }
+    return nb;
   }
 }
 
 void NormalizationEngine::getCoefficients(Node& n, Node& var, std::unordered_set<Node>& s_coefs)
 {
-  for (int i = 0; i < n.getNumChildren(); ++i)
+  std::vector<Node> toProcess;
+  toProcess.push_back(n);
+
+  do
   {
-    Node child = n[i];
-    if (child.getKind() == MULT)
+    Node cur = toProcess.back();
+    toProcess.pop_back();
+    if (cur.getKind() == MULT)
     {
-      if (child[0].isConst() && child[1].isVar()
-          && child[1] == var)
+      if (cur[0].isConst() && cur[1].isVar()
+          && cur[1] == var)
       {
-        s_coefs.insert(child[0]);
+        s_coefs.insert(cur[0]);
       }
-      else if (child[1].isConst() && child[0].isVar()
-               && child[0] == var)
+      else if (cur[1].isConst() && cur[0].isVar()
+               && cur[0] == var)
       {
-        s_coefs.insert(child[1]);
+        s_coefs.insert(cur[1]);
       }
     }
-    getCoefficients(child, var, s_coefs);
-  }
+    toProcess.insert(toProcess.end(), cur.begin(), cur.end());
+  } while (!toProcess.empty());
 }
 
 Node NormalizationEngine::processModuloConstraint(Node& n)
@@ -258,14 +248,8 @@ Node NormalizationEngine::processModuloConstraint(Node& n)
                            : nm->mkNode(AND, local_disjunct, temp);
     }
 
-    if (ret == falseNode)
-    {
-      ret = local_disjunct;
-    }
-    else
-    {
-      ret = nm->mkNode(OR, ret, local_disjunct);
-    }
+    ret = (ret == falseNode) ? local_disjunct
+                             : nm->mkNode(OR, ret, local_disjunct);
   }
 
   return ret;
@@ -273,11 +257,13 @@ Node NormalizationEngine::processModuloConstraint(Node& n)
 
 Node NormalizationEngine::simplifyModuloConstraints(Node n)
 {
+  // Rewrite the node if it represents a modulo constraint
   if (n.getKind() == EQUAL && (n[0].getKind() == INTS_MODULUS || n[1].getKind() == INTS_MODULUS))
   {
     return processModuloConstraint(n);
   }
 
+  // Recursively simplify modulo constraint
   NodeBuilder nb(n.getKind());
   for (int i = 0; i < n.getNumChildren(); ++i)
   {
@@ -286,12 +272,13 @@ Node NormalizationEngine::simplifyModuloConstraints(Node n)
   return nb;
 }
 
-Node NormalizationEngine::rewrite_qe(Node n)
+Node NormalizationEngine::rewriteQe(Node n)
 {
   NodeManager* nm = NodeManager::currentNM();
-  Node zeroNode = nm->mkConstInt(Rational(0));
-  Node oneNode = nm->mkConstInt(Rational(1));
+  Node zeroNode = nm->mkConstInt(0);
+  Node oneNode = nm->mkConstInt(1);
 
+  // Transform (a > b) -> (b - a < 0)
   if (n.getKind() == GT)
   {
     if (n[1] != zeroNode)
@@ -303,6 +290,7 @@ Node NormalizationEngine::rewrite_qe(Node n)
       n = nm->mkNode(LT, nm->mkNode(NEG, n[0]), n[1]);
     }
   }
+  // Transform (a < b) -> (a - b < 0)
   else if (n.getKind() == LT)
   {
     if (n[1] != zeroNode)
@@ -312,11 +300,13 @@ Node NormalizationEngine::rewrite_qe(Node n)
   }
   else if (n.getKind() == LEQ)
   {
+    // Transform (a <= b) -> (a - b - 1 < 0)
     if (n[1] != zeroNode)
     {
       n = nm->mkNode(
           LT, nm->mkNode(SUB, nm->mkNode(SUB, n[0], n[1]), oneNode), zeroNode);
     }
+    // Transform (a <= 0) -> (a - 1 < 0)
     else
     {
       n = nm->mkNode(LT, nm->mkNode(SUB, n[0], oneNode), zeroNode);
@@ -324,11 +314,13 @@ Node NormalizationEngine::rewrite_qe(Node n)
   }
   else if (n.getKind() == GEQ)
   {
+    // Transform (a >= b) -> (b - a - 1 < 0)
     if (n[1] != zeroNode)
     {
       n = nm->mkNode(
           LT, nm->mkNode(SUB, nm->mkNode(SUB, n[1], n[0]), oneNode), zeroNode);
     }
+    // Transform (a >= 0) -> (- a - 1 < 0)
     else
     {
       n = nm->mkNode(
@@ -337,6 +329,7 @@ Node NormalizationEngine::rewrite_qe(Node n)
   }
   else if (n.getKind() == EQUAL)
   {
+    // Transform ((a mod q) = (b mod q)) -> ((a - b) mod q = 0)
     if (n[0].getKind() == INTS_MODULUS && n[1].getKind() == INTS_MODULUS
         && n[0][1] == n[1][1])
     {
@@ -345,28 +338,28 @@ Node NormalizationEngine::rewrite_qe(Node n)
           nm->mkNode(INTS_MODULUS, nm->mkNode(SUB, n[0][0], n[1][0]), n[0][1]),
           zeroNode);
     }
+    // Transform (a = b) -> (b - a - 1 < 0) AND (a - b - 1 < 0)
     else
     {
       n = nm->mkNode(
           AND,
           nm->mkNode(
               LT,
-              nm->mkNode(SUB, nm->mkNode(SUB, n[1], n[0]), nm->mkConstInt(1)),
+              nm->mkNode(SUB, nm->mkNode(SUB, n[1], n[0]), oneNode),
               zeroNode),
           nm->mkNode(
               LT,
-              nm->mkNode(SUB, nm->mkNode(SUB, n[0], n[1]), nm->mkConstInt(1)),
+              nm->mkNode(SUB, nm->mkNode(SUB, n[0], n[1]), oneNode),
               zeroNode));
     }
   }
 
+  // After rewriting n, recursively rewrite its children if not a leaf
   switch (n.getNumChildren())
   {
-    case 1: return nm->mkNode(n.getKind(), rewrite_qe(n[0]));
-    case 2: return nm->mkNode(n.getKind(), rewrite_qe(n[0]), rewrite_qe(n[1]));
-    case 3:
-      return nm->mkNode(
-          n.getKind(), rewrite_qe(n[0]), rewrite_qe(n[1]), rewrite_qe(n[2]));
+    case 1: return nm->mkNode(n.getKind(), rewriteQe(n[0]));
+    case 2: return nm->mkNode(n.getKind(), rewriteQe(n[0]), rewriteQe(n[1]));
+    case 3: return nm->mkNode(n.getKind(), rewriteQe(n[0]), rewriteQe(n[1]), rewriteQe(n[2]));
     default: return n;
   }
 }

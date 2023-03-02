@@ -36,10 +36,10 @@ class SolutionCounter
   std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
   /**
    * Using a dynamic programming algorithm, compute the vector of all satisfiable orderings on nodes from the vector terms.
-   * @param terms
+   * @param terms_s
    * @return a vector of satisfiable orderings of nodes from terms.
    */
-  std::vector<Ordering> computeOrderings(std::vector<Node>& terms);
+  std::vector<Ordering> computeOrderings(std::unordered_set<Node>& terms_s);
   /**
    * Generate a vector of segments for a bound variable bv and ordering ord, as described in Step III of the procedure.
    * @param bv node representing the bound variable.

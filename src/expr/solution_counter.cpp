@@ -42,12 +42,14 @@ SolutionCounter::SolutionCounter(theory::Rewriter* rewriter) : d_rewriter(rewrit
 
 SolutionCounter::~SolutionCounter() {}
 
-std::vector<Ordering> SolutionCounter::computeOrderings(std::vector<Node>& terms)
+std::vector<Ordering> SolutionCounter::computeOrderings(
+    std::unordered_set<Node>& terms_s)
 {
   std::vector<Ordering> fam;
-  for (int j = 1; j <= terms.size(); ++j)
+  std::vector<Node> terms_v(terms_s.begin(), terms_s.end());
+  for (int j = 1; j <= terms_s.size(); ++j)
   {
-    fam = computeFamily(j, fam, terms);
+    fam = computeFamily(j, fam, terms_v);
   }
 
   return fam;

@@ -22,7 +22,7 @@ class NormalizationEngine
    * @return an equivalent formula in which all non-zero coefficients of the bound variable from are
    *         normalized to -1 or 1 and modulo constraints are simple
    */
-  Node normalizeFormula(Node& q, std::vector<Node>& terms_v);
+  Node normalizeFormula(Node& q, std::unordered_set<Node>& terms_s);
   /**
    * Using a depth-first solution, simplify modulo constraints in formula n as per Lemma 1
    * and recursively build a transformed abstract syntax tree.
@@ -37,7 +37,7 @@ class NormalizationEngine
    * @return an equivalent formula where all inequalities and equalities
    *         have been rewritten into terms of the form t < 0
    */
-  Node rewrite_qe(Node n);
+  Node rewriteQe(Node n);
 
  private:
   /**
@@ -46,7 +46,7 @@ class NormalizationEngine
    * @param bv Node containing the bound variable
    * @return the coefficient of bv in n if present, else 0
    */
-  Integer extractCoefficient(Node n, Node bv);
+  Integer extractCoefficient(Node n, Node& bv);
   /**
    * Normalize all coefficients of bv in occuring in n to -1 or 1. Using a depth-first
    * solution, recursively build an abstract syntax tree representing the resulting formula.
@@ -54,14 +54,14 @@ class NormalizationEngine
    * @param bv node containing the bound variable
    * @param k a reference to an Integer object representing the lcm
    *          of the absolute values of all coefficients of bv appearing in n
-   * @param terms_v the vector that all bv-free terms are added to
+   * @param terms_s the vector that all bv-free terms are added to
    * @return an equivalent formula in which all non-zero coefficients of the bound variable from are
    *         normalized to -1 or 1
    */
   Node normalizeCoefficients(Node& n,
                              Node& bv,
                              Integer& k,
-                             std::vector<Node>& terms_v);
+                             std::unordered_set<Node>& terms_s);
   /**
    * Remove the bound variable bv from node n, save the coefficient of bv in bv_coef
    * @param n the node under investigation
@@ -87,6 +87,13 @@ class NormalizationEngine
    *         that do not introduce any new moduli or variables
    */
   Node processModuloConstraint(Node& n);
+
+  /**
+   * Given a TNode n of kind CONST_INTEGER, extract int value from it
+   * @param n node of kind CONST_INTEGER
+   * @return integer stored in the node.
+   */
+  Integer extractInteger(Node n);
 
   /**
    * A pointer to a Rewriter object needed by the NormalizationEngine to

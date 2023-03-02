@@ -1,0 +1,5 @@
+(set-logic LIA)
+(declare-fun a () Int)
+(declare-fun b () Int)
+(declare-fun x () Int)
+(get-qe (exists-exactly ((x Int)) 10 (and (> x a) (= (* 5 x) b))))
