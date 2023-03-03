@@ -162,32 +162,6 @@ std::vector<Node> SolutionCounter::getSegments(Node& bv, Ordering& ord)
   return segments;
 }
 
-std::vector<std::unordered_map<std::string, Node>>
-SolutionCounter::generateResidueClassMappings(int range,
-                                             std::vector<Node>& variables)
-{
-  std::vector<std::vector<int>> combinations;
-  std::vector<int> assignment(variables.size(), 0);
-  getCombinationsRec(
-      assignment, combinations, 0, variables.size(), 0, range - 1);
-
-  NodeManager* nm = NodeManager::currentNM();
-  std::vector<std::unordered_map<std::string, Node>> mappings;
-  for (auto& comb : combinations)
-  {
-    std::unordered_map<std::string, Node> mapping;
-    for (int i = 0; i < comb.size(); ++i)
-    {
-      std::pair<std::string, Node> p(variables[i].toString(),
-                                     nm->mkConstInt(Rational(comb[i])));
-      mapping.insert(p);
-    }
-    mappings.push_back(mapping);
-  }
-
-  return mappings;
-}
-
 Node SolutionCounter::assignResidueClass(
     std::unordered_map<std::string, Node> assignment,
     std::vector<Node> variables,
@@ -211,24 +185,48 @@ Node SolutionCounter::assignResidueClass(
   return ret;
 }
 
+std::vector<std::unordered_map<std::string, Node>>
+SolutionCounter::generateResidueClassMappings(int range,
+                                              std::vector<Node>& variables)
+{
+  std::vector<std::vector<int>> combinations;
+  std::vector<int> assignment(variables.size(), 0);
+  getCombinationsRec(assignment, combinations, 0, variables.size(), range - 1);
+
+  NodeManager* nm = NodeManager::currentNM();
+  std::vector<std::unordered_map<std::string, Node>> mappings;
+  for (auto& comb : combinations)
+  {
+    std::unordered_map<std::string, Node> mapping;
+    for (int i = 0; i < comb.size(); ++i)
+    {
+      std::pair<std::string, Node> p(variables[i].toString(),
+                                     nm->mkConstInt(Rational(comb[i])));
+      mapping.insert(p);
+    }
+    mappings.push_back(mapping);
+  }
+
+  return mappings;
+}
+
 void SolutionCounter::getCombinationsRec(
     std::vector<int> assignment,
     std::vector<std::vector<int>>& combinations,
-    int index,
-    int r,
-    int start,
-    int end)
+    int i,
+    int target_length,
+    int range)
 {
-  if (index == r)
+  if (i == target_length)
   {
     combinations.push_back(assignment);
     return;
   }
 
-  for (int j = start; j <= end; ++j)
+  for (int j = 0; j <= range; ++j)
   {
-    assignment[index] = j;
-    getCombinationsRec(assignment, combinations, index + 1, r, j, end);
+    assignment[i] = j;
+    getCombinationsRec(assignment, combinations, i+1, target_length, range);
   }
 }
 
@@ -303,6 +301,7 @@ Node SolutionCounter::evaluateOrdering(
     std::vector<Node>& variables,
     Integer& m)
 {
+//  Trace("smt-qe") << "evaluateOrdering: calling on q = " << q << std::endl;
   NodeManager* nm = NodeManager::currentNM();
   Node bigGamma = nm->mkNode(
       AND, assignResidueClass(assignment, variables, m), ord.getNode());
@@ -333,7 +332,9 @@ Node SolutionCounter::getTermAssignment(
 
 int SolutionCounter::extractInt(TNode& n)
 {
-  return n.getConst<Rational>().getNumerator().getSignedInt();
+  int ret = n.getConst<Rational>().getNumerator().getSignedInt();
+  Trace("smt-qe") << "extractInt: calling on n = " << n << " and extracted = " << ret << std::endl;
+  return ret;
 }
 
 bool SolutionCounter::countSolutions(
@@ -346,6 +347,7 @@ bool SolutionCounter::countSolutions(
     std::vector<int>& r,
     std::vector<int>& c)
 {
+//  Trace("smt-qe") << "countSolutions: calling on node q = " << q << std::endl;
   NodeManager* nm = NodeManager::currentNM();
   SolverEngine se;
   Node trueNode = nm->mkConst<bool>(true);
@@ -362,6 +364,7 @@ bool SolutionCounter::countSolutions(
              evaluateOrdering(q, ord, segs.second, assignment, variables, m))
              == Result::SAT)
   {
+//    Trace("smt-qe") << "countSolutions: returning false" << std::endl;
     return false;
   }
 
@@ -396,6 +399,7 @@ bool SolutionCounter::countSolutions(
     TNode r_t_prev = d_rewriter->rewrite(
         getTermAssignment(processed_t[j - 1], assignment, variables));
 
+    Trace("smt-qe") << "SANITY CHECK" << std::endl;
     int u1_j = extractInt(r_t_prev);
     int u2_j = u1_j + 1;
     while (u2_j % m_int != extractInt(r_t_prev) % m_int)

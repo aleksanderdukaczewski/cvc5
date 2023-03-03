@@ -164,18 +164,16 @@ class SolutionCounter
    * 0 to r-1 with repetition using a depth-first method.
    * @param assignment Currently generated vector of int representing the assignment to variable classes.
    * @param combinations The reference to vector containing
-   * @param index The current index for inserting a number into the combination
-   * @param r The range of numbers used to generate the combinations.
+   * @param i The current index for inserting a number into the combination
+   * @param target_length The range of numbers used to generate the combinations.
    * @param start The index in assignment to start insertions from
-   * @param end The index in assignment to end insertions at
+   * @param range The index in assignment to end insertions at
    */
-  static void getCombinationsRec(
-      std::vector<int> assignment,
-      std::vector<std::vector<int>>& combinations,
-      int index,
-      int r,
-      int start,
-      int end);
+  static void getCombinationsRec(std::vector<int> assignment,
+                                 std::vector<std::vector<int>>& combinations,
+                                 int i,
+                                 int target_length,
+                                 int range);
 
   /**
    * Given a TNode n of kind CONST_INTEGER, extract int value from it
