@@ -80,16 +80,13 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       m = m.lcm(mod_i);
     }
 
-    std::unordered_set<Node> Z;
-    std::vector<Node> Z_vect;
-    expr::getSymbols(q, Z);
-    std::copy(Z.begin(), Z.end(), std::back_inserter(Z_vect));
-    Trace("smt-qe") << "variables in the formula = " << Z_vect << std::endl;
+    std::unordered_set<TNode> Z;
+    expr::getVariables(q, Z);
+    std::vector<Node> Z_vect(Z.begin(), Z.end());
     std::vector<std::unordered_map<std::string, Node>> mappings =
         SolutionCounter::generateResidueClassMappings(3, Z_vect);
 
-    Node falseNode = nm->mkConst<bool>(false);
-    Node ret = falseNode;
+    NodeBuilder ret(OR);
     for (auto& ord: orderings)
     {
       for (auto& residue_class : mappings)
@@ -122,14 +119,21 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         {
           sum2 = nm->mkNode(ADD, sum2, nm->mkConstInt(c[j]));
         }
-        Node bigGamma = nm->mkNode(AND,
-                       sc.assignResidueClass(residue_class, Z_vect, m), ord.getNode());
-        Node disjunct = nm->mkNode(AND, bigGamma, nm->mkNode(
-            EQUAL,
-            nm->mkNode(MULT, nm->mkConstInt(m), q[1]),
-            nm->mkNode(ADD, sum1, nm->mkNode(MULT, nm->mkConstInt(m), sum2))));
+        Node bigGamma =
+            nm->mkNode(AND,
+                       sc.assignResidueClass(residue_class, Z_vect, m),
+                       ord.getNode());
+        Node disjunct = nm->mkNode(
+            AND,
+            bigGamma,
+            nm->mkNode(
+                EQUAL,
+                nm->mkNode(MULT, nm->mkConstInt(m), q[1]),
+                nm->mkNode(
+                    ADD, sum1, nm->mkNode(MULT, nm->mkConstInt(m), sum2))));
 
-        ret = (ret == falseNode) ? disjunct : nm->mkNode(OR, disjunct, ret);
+        if (orderings.size() == 1 && mappings.size() == 1) return disjunct;
+        ret << disjunct;
       }
     }
     return ret;

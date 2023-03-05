@@ -22,23 +22,27 @@ Node Ordering::getNode()
   }
   else
   {
+    NodeBuilder ret(AND);
     for (int i = 1; i < terms.size(); ++i)
     {
       Node RHS = nm->mkNode(rels[i - 1], terms[i - 1], terms[i]);
-      if (i == 1)
+      if (terms.size() == 2)
       {
-        n = RHS;
+        return RHS;
       }
       else
       {
-        n = nm->mkNode(kind::AND, n, RHS);
+        ret << RHS;
       }
     }
-    return n;
+    return ret;
   }
 }
 
-SolutionCounter::SolutionCounter(theory::Rewriter* rewriter) : d_rewriter(rewriter) {}
+SolutionCounter::SolutionCounter(theory::Rewriter* rewriter)
+    : d_rewriter(rewriter)
+{
+}
 
 SolutionCounter::~SolutionCounter() {}
 
@@ -70,14 +74,17 @@ std::vector<Ordering> SolutionCounter::computeFamily(
   else
   {
     Node curr_term = terms.at(j - 1);
-
     for (Ordering& ord : prev_fam)
     {
       for (int i = 1; i <= j - 1; ++i)
       {
+        //        Trace("smt-qe") << "INSERTING curr_term = " << curr_term << "
+        //        into ord = " << ord.getNode() << " at i = " << i << std::endl;
         Ordering new_ord = ord;
         new_ord.rels.insert(new_ord.rels.begin() + i - 1, EQUAL);
         new_ord.terms.insert(new_ord.terms.begin() + i - 1, curr_term);
+        //        Trace("smt-qe") << "generated new ord = " << new_ord.getNode()
+        //        << std::endl;
         if (satisfiableOrdering(new_ord))
         {
           fam.push_back(new_ord);
@@ -86,6 +93,8 @@ std::vector<Ordering> SolutionCounter::computeFamily(
         new_ord = ord;
         new_ord.rels.insert(new_ord.rels.begin() + i - 1, LT);
         new_ord.terms.insert(new_ord.terms.begin() + i - 1, curr_term);
+        //        Trace("smt-qe") << "generated new ord = " << new_ord.getNode()
+        //        << std::endl;
         if (satisfiableOrdering(new_ord))
         {
           fam.push_back(new_ord);
@@ -94,6 +103,8 @@ std::vector<Ordering> SolutionCounter::computeFamily(
         new_ord = ord;
         new_ord.rels.insert(new_ord.rels.begin() + i - 1, LT);
         new_ord.terms.insert(new_ord.terms.begin() + i, curr_term);
+        //        Trace("smt-qe") << "generated new ord = " << new_ord.getNode()
+        //        << std::endl;
         if (satisfiableOrdering(new_ord))
         {
           fam.push_back(new_ord);
@@ -150,10 +161,9 @@ std::vector<Node> SolutionCounter::getSegments(Node& bv, Ordering& ord)
   segments.push_back(nm->mkNode(EQUAL, bv, new_ord.terms[0]));
   for (int i = 1; i < new_ord.terms.size(); ++i)
   {
-    segments.push_back(
-        nm->mkNode(AND,
-                   nm->mkNode(LT, new_ord.terms[i - 1], bv),
-                   nm->mkNode(LT, bv, new_ord.terms[i])));
+    segments.push_back(nm->mkNode(AND,
+                                  nm->mkNode(LT, new_ord.terms[i - 1], bv),
+                                  nm->mkNode(LT, bv, new_ord.terms[i])));
     segments.push_back(nm->mkNode(EQUAL, bv, new_ord.terms[i]));
   }
   segments.push_back(
@@ -167,10 +177,16 @@ Node SolutionCounter::assignResidueClass(
     std::vector<Node> variables,
     Integer m)
 {
-  NodeManager* nm = NodeManager::currentNM();
-  Node trueNode = nm->mkConst<bool>(true);
-  Node ret = trueNode;
+//  Trace("smt-qe") << "assignResidueClass: calling on variables = " << variables
+//                  << " m = " << m.toString() << " and assignment:" << std::endl;
+//
+//  for (auto& p : assignment)
+//  {
+//    Trace("smt-qe") << p.first << " : " << p.second << std::endl;
+//  }
 
+  NodeManager* nm = NodeManager::currentNM();
+  NodeBuilder ret(AND);
   for (Node& var : variables)
   {
     Node assigned_var = assignment.at(var.toString());
@@ -178,11 +194,31 @@ Node SolutionCounter::assignResidueClass(
         EQUAL,
         nm->mkNode(INTS_MODULUS, assigned_var, nm->mkConstInt(Rational(m))),
         nm->mkNode(INTS_MODULUS, var, nm->mkConstInt(Rational(m))));
-    ret = (ret == trueNode) ? modulo_constraint
-                          : nm->mkNode(AND, ret, modulo_constraint);
+    if (variables.size() == 1) return modulo_constraint;
+    ret << modulo_constraint;
   }
 
+//  Trace("smt-qe") << "assignResidueClass: returning ret = " << ret << std::endl;
   return ret;
+
+  //  Node trueNode = nm->mkConst<bool>(true);
+  //  Node ret = trueNode;
+  //
+  //  for (Node& var : variables)
+  //  {
+  //    Node assigned_var = assignment.at(var.toString());
+  //    Node modulo_constraint = nm->mkNode(
+  //        EQUAL,
+  //        nm->mkNode(INTS_MODULUS, assigned_var, nm->mkConstInt(Rational(m))),
+  //        nm->mkNode(INTS_MODULUS, var, nm->mkConstInt(Rational(m))));
+  //    ret = (ret == trueNode) ? modulo_constraint
+  //                            : nm->mkNode(AND, ret, modulo_constraint);
+  //  }
+  //
+  //  Trace("smt-qe") << "assignResidueClass: returning ret = " << ret <<
+  //  std::endl;
+  //
+  //  return ret;
 }
 
 std::vector<std::unordered_map<std::string, Node>>
@@ -226,7 +262,7 @@ void SolutionCounter::getCombinationsRec(
   for (int j = 0; j <= range; ++j)
   {
     assignment[i] = j;
-    getCombinationsRec(assignment, combinations, i+1, target_length, range);
+    getCombinationsRec(assignment, combinations, i + 1, target_length, range);
   }
 }
 
@@ -237,19 +273,20 @@ Node SolutionCounter::evaluateInequalities(Node& conj, Node curr, Node& q)
 
   if (curr.getKind() == LT)
   {
-    se.assertFormula(conj);
-    Result isSat = se.checkSat(nm->mkNode(EXISTS_EXACTLY, q[0], q[1], curr));
-    return nm->mkConst<bool>(isSat == Result::SAT);
+    se.assertFormula(nm->mkNode(EXISTS, q[0], conj));
+    Result isSat = se.checkSat(nm->mkNode(EXISTS, q[0], curr));
+
+    Node ret = nm->mkConst<bool>(isSat == Result::SAT);
+    return ret;
   }
 
   NodeBuilder nb(curr.getKind());
   for (int i = 0; i < curr.getNumChildren(); ++i)
   {
     nb << (curr[i].getNumChildren() > 0 ? evaluateInequalities(conj, curr[i], q)
-                                       : curr[i]);
+                                        : curr[i]);
   }
-  Node ret = nb;
-  return ret;
+  return nb;
 }
 
 Node SolutionCounter::evaluateModuloConstraints(Node& conj, Node curr, Node& q)
@@ -257,26 +294,26 @@ Node SolutionCounter::evaluateModuloConstraints(Node& conj, Node curr, Node& q)
   NodeManager* nm = NodeManager::currentNM();
   Node bv = q[0][0];
   if (curr.getKind() == EQUAL
-      && (curr[0].getKind() == INTS_MODULUS || curr[1].getKind() == INTS_MODULUS))
+      && (curr[0].getKind() == INTS_MODULUS
+          || curr[1].getKind() == INTS_MODULUS))
   {
-    std::unordered_set<Node> syms;
-    expr::getSymbols(curr, syms);
-    if (syms.find(bv) == syms.end())
+//    Trace("smt-qe") << "evaluateModuloConstraints: calling on conj = " << conj
+//                    << " and curr = " << curr << std::endl;
+    //    std::unordered_set<Node> syms;
+    //    expr::getSymbols(curr, syms);
+    if (!expr::hasBoundVar(curr))
     {
       SolverEngine se;
-      if (se.checkSat(nm->mkNode(
-              EXISTS_EXACTLY, q[0], q[1], nm->mkNode(AND, conj, curr)))
-          == Result::SAT)
-      {
-        return nm->mkConst<bool>(true);
-      }
-      else
-      {
-        return nm->mkConst<bool>(false);
-      }
+//      se.assertFormula(nm->mkNode(EXISTS_EXACTLY, q[0], q[1], conj));
+      se.assertFormula(nm->mkNode(EXISTS, q[0], conj));
+//      Trace("smt-qe") << "Asserted conj" << std::endl;
+//      Trace("smt-qe") << "Assertions: " << se.getAssertions() << std::endl;
+      return nm->mkConst<bool>(se.checkSat(nm->mkNode(EXISTS, q[0], curr)) == Result::SAT);
     }
     else
     {
+//      Trace("smt-qe") << "evaluateModuloConstraints: returningn curr = " << curr
+//                      << std::endl;
       return curr;
     }
   }
@@ -301,15 +338,11 @@ Node SolutionCounter::evaluateOrdering(
     std::vector<Node>& variables,
     Integer& m)
 {
-//  Trace("smt-qe") << "evaluateOrdering: calling on q = " << q << std::endl;
   NodeManager* nm = NodeManager::currentNM();
   Node bigGamma = nm->mkNode(
       AND, assignResidueClass(assignment, variables, m), ord.getNode());
   Node conj = nm->mkNode(
-      AND, nm->mkNode(kind::EXISTS_EXACTLY, q[0], q[1], segment), bigGamma);
-
-  std::unordered_set<Node> freeVars;
-  expr::getFreeVariables(segment, freeVars);
+      AND, segment, bigGamma);
 
   Node ret = evaluateInequalities(conj, q[2], q);
   ret = evaluateModuloConstraints(conj, ret, q);
@@ -332,9 +365,7 @@ Node SolutionCounter::getTermAssignment(
 
 int SolutionCounter::extractInt(TNode& n)
 {
-  int ret = n.getConst<Rational>().getNumerator().getSignedInt();
-  Trace("smt-qe") << "extractInt: calling on n = " << n << " and extracted = " << ret << std::endl;
-  return ret;
+  return n.getConst<Rational>().getNumerator().getSignedInt();
 }
 
 bool SolutionCounter::countSolutions(
@@ -347,7 +378,6 @@ bool SolutionCounter::countSolutions(
     std::vector<int>& r,
     std::vector<int>& c)
 {
-//  Trace("smt-qe") << "countSolutions: calling on node q = " << q << std::endl;
   NodeManager* nm = NodeManager::currentNM();
   SolverEngine se;
   Node trueNode = nm->mkConst<bool>(true);
@@ -357,14 +387,11 @@ bool SolutionCounter::countSolutions(
 
   std::pair<Node, Node> segs(nm->mkNode(LT, q[0][0], processed_t[0]),
                              nm->mkNode(LT, processed_t[l - 1], q[0][0]));
-  if (se.checkSat(
-          evaluateOrdering(q, ord, segs.first, assignment, variables, m))
-          == Result::SAT
-      || se.checkSat(
-             evaluateOrdering(q, ord, segs.second, assignment, variables, m))
-             == Result::SAT)
+
+  Node ord1 = nm->mkNode(EXISTS, q[0], evaluateOrdering(q, ord, segs.first, assignment, variables, m));
+  Node ord2 = nm->mkNode(EXISTS, q[0], evaluateOrdering(q, ord, segs.second, assignment, variables, m));
+  if (se.checkSat(ord1) == Result::SAT || se.checkSat(ord2) == Result::SAT)
   {
-//    Trace("smt-qe") << "countSolutions: returning false" << std::endl;
     return false;
   }
 
@@ -386,23 +413,30 @@ bool SolutionCounter::countSolutions(
                      nm->mkNode(LT, processed_t[j - 1], q[0][0]),
                      nm->mkNode(LT, q[0][0], processed_t[j]));
 
-    for (int i = 0; i < m.getSignedInt(); ++i)
+    if (expr::hasBoundVar(evaluated_ord))
     {
-      TNode i_node = nm->mkConstInt(i);
-      if (d_rewriter->rewrite(evaluated_ord.substitute(q[0][0], i_node))
-          == trueNode)
+      for (int i = 0; i < m.getSignedInt(); ++i)
       {
-        p[j]++;
+        TNode i_node = nm->mkConstInt(i);
+        Node rewritten =
+            d_rewriter->rewrite(evaluated_ord.substitute(q[0][0], i_node));
+        if (rewritten == trueNode)
+        {
+          p[j]++;
+        }
       }
+    }
+    else
+    {
+      p[j] = m.getSignedInt();
     }
 
     TNode r_t_prev = d_rewriter->rewrite(
         getTermAssignment(processed_t[j - 1], assignment, variables));
 
-    Trace("smt-qe") << "SANITY CHECK" << std::endl;
     int u1_j = extractInt(r_t_prev);
     int u2_j = u1_j + 1;
-    while (u2_j % m_int != extractInt(r_t_prev) % m_int)
+    while (Integer(u2_j).euclidianDivideRemainder(Integer(m_int)) != Integer(extractInt(r_t)).euclidianDivideRemainder(Integer(m_int)))
     {
       u2_j++;
     }
