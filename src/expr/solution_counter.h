@@ -133,7 +133,8 @@ class SolutionCounter
    */
   std::vector<Ordering> computeFamily(int j,
                                       std::vector<Ordering>& prev_fam,
-                                      std::vector<Node>& terms);
+                                      std::vector<Node>& terms,
+                                      std::unordered_set<Node>& cache);
   /**
    * Using a local SolverEngine instance, check if ord is satisfiable.
    * @param ord Ordering to be checked for satisfiability

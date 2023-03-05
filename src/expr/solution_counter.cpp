@@ -53,14 +53,18 @@ std::vector<Ordering> SolutionCounter::computeOrderings(
   std::vector<Node> terms_v(terms_s.begin(), terms_s.end());
   for (int j = 1; j <= terms_s.size(); ++j)
   {
-    fam = computeFamily(j, fam, terms_v);
+    std::unordered_set<Node> cache;
+    fam = computeFamily(j, fam, terms_v, cache);
   }
 
   return fam;
 }
 
 std::vector<Ordering> SolutionCounter::computeFamily(
-    int j, std::vector<Ordering>& prev_fam, std::vector<Node>& terms)
+    int j,
+    std::vector<Ordering>& prev_fam,
+    std::vector<Node>& terms,
+    std::unordered_set<Node>& cache)
 {
   std::vector<Ordering> fam;
   if (j == 1)
@@ -78,23 +82,21 @@ std::vector<Ordering> SolutionCounter::computeFamily(
     {
       for (int i = 1; i <= j - 1; ++i)
       {
-        //        Trace("smt-qe") << "INSERTING curr_term = " << curr_term << "
-        //        into ord = " << ord.getNode() << " at i = " << i << std::endl;
         Ordering new_ord = ord;
         new_ord.rels.insert(new_ord.rels.begin() + i - 1, EQUAL);
         new_ord.terms.insert(new_ord.terms.begin() + i - 1, curr_term);
-        //        Trace("smt-qe") << "generated new ord = " << new_ord.getNode()
-        //        << std::endl;
-        if (satisfiableOrdering(new_ord))
+        // Equivalent ordering may have been created, check in cache
+        Node rewritten_new_ord = d_rewriter->rewrite(new_ord.getNode());
+        const bool already_checked = cache.find(rewritten_new_ord) != cache.end();
+        if (!already_checked && satisfiableOrdering(new_ord))
         {
           fam.push_back(new_ord);
+          cache.insert(rewritten_new_ord);
         }
 
         new_ord = ord;
         new_ord.rels.insert(new_ord.rels.begin() + i - 1, LT);
         new_ord.terms.insert(new_ord.terms.begin() + i - 1, curr_term);
-        //        Trace("smt-qe") << "generated new ord = " << new_ord.getNode()
-        //        << std::endl;
         if (satisfiableOrdering(new_ord))
         {
           fam.push_back(new_ord);
@@ -103,8 +105,6 @@ std::vector<Ordering> SolutionCounter::computeFamily(
         new_ord = ord;
         new_ord.rels.insert(new_ord.rels.begin() + i - 1, LT);
         new_ord.terms.insert(new_ord.terms.begin() + i, curr_term);
-        //        Trace("smt-qe") << "generated new ord = " << new_ord.getNode()
-        //        << std::endl;
         if (satisfiableOrdering(new_ord))
         {
           fam.push_back(new_ord);
