@@ -80,13 +80,18 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       m = m.lcm(mod_i);
     }
 
-    std::unordered_set<TNode> Z;
-    expr::getVariables(q, Z);
+    std::unordered_set<Node> Z;
+    expr::getSymbols(q, Z);
     std::vector<Node> Z_vect(Z.begin(), Z.end());
+    Trace("smt-qe") << "Z_vect" << Z_vect << std::endl;
     std::vector<std::unordered_map<std::string, Node>> mappings =
-        SolutionCounter::generateResidueClassMappings(3, Z_vect);
+        SolutionCounter::generateResidueClassMappings(m.getSignedInt(), Z_vect);
 
+    Node falseNode = nm->mkConst<bool>(false);
     NodeBuilder ret(OR);
+    Trace("smt-qe") << "orderings: " << orderings.size() << std::endl;
+    Trace("smt-qe") << "mappings: " << mappings.size() << std::endl;
+
     for (auto& ord: orderings)
     {
       for (auto& residue_class : mappings)
@@ -100,6 +105,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         }
 
         Node sum1 = nm->mkConstInt(0);
+//        Trace("smt-qe") << "processed_ord.terms: " << processed_ord.terms << std::endl;
         for (int j = 1; j < l; ++j)
         {
           sum1 = nm->mkNode(
@@ -132,11 +138,21 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
                 nm->mkNode(
                     ADD, sum1, nm->mkNode(MULT, nm->mkConstInt(m), sum2))));
 
-        if (orderings.size() == 1 && mappings.size() == 1) return disjunct;
-        ret << disjunct;
+        if (rewrite(disjunct) != falseNode)
+        {
+          ret << disjunct;
+        }
       }
     }
-    return ret;
+    switch (ret.getNumChildren())
+    {
+      case 0:
+        return falseNode;
+      case 1:
+        return ret[0];
+      default:
+        return ret;
+    }
   }
   else
   {

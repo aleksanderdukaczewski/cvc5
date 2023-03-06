@@ -1,4 +1,4 @@
-; EXPECT: (false)
+; EXPECT: false
 (set-logic LIA)
 (declare-fun a () Int)
 (declare-fun b () Int)

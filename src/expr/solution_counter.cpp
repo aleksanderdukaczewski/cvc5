@@ -35,7 +35,7 @@ Node Ordering::getNode()
         ret << RHS;
       }
     }
-    return ret;
+    return ret.getNumChildren() == 1 ? ret[0] : ret;
   }
 }
 
@@ -177,14 +177,6 @@ Node SolutionCounter::assignResidueClass(
     std::vector<Node> variables,
     Integer m)
 {
-//  Trace("smt-qe") << "assignResidueClass: calling on variables = " << variables
-//                  << " m = " << m.toString() << " and assignment:" << std::endl;
-//
-//  for (auto& p : assignment)
-//  {
-//    Trace("smt-qe") << p.first << " : " << p.second << std::endl;
-//  }
-
   NodeManager* nm = NodeManager::currentNM();
   NodeBuilder ret(AND);
   for (Node& var : variables)
@@ -194,31 +186,10 @@ Node SolutionCounter::assignResidueClass(
         EQUAL,
         nm->mkNode(INTS_MODULUS, assigned_var, nm->mkConstInt(Rational(m))),
         nm->mkNode(INTS_MODULUS, var, nm->mkConstInt(Rational(m))));
-    if (variables.size() == 1) return modulo_constraint;
     ret << modulo_constraint;
   }
 
-//  Trace("smt-qe") << "assignResidueClass: returning ret = " << ret << std::endl;
-  return ret;
-
-  //  Node trueNode = nm->mkConst<bool>(true);
-  //  Node ret = trueNode;
-  //
-  //  for (Node& var : variables)
-  //  {
-  //    Node assigned_var = assignment.at(var.toString());
-  //    Node modulo_constraint = nm->mkNode(
-  //        EQUAL,
-  //        nm->mkNode(INTS_MODULUS, assigned_var, nm->mkConstInt(Rational(m))),
-  //        nm->mkNode(INTS_MODULUS, var, nm->mkConstInt(Rational(m))));
-  //    ret = (ret == trueNode) ? modulo_constraint
-  //                            : nm->mkNode(AND, ret, modulo_constraint);
-  //  }
-  //
-  //  Trace("smt-qe") << "assignResidueClass: returning ret = " << ret <<
-  //  std::endl;
-  //
-  //  return ret;
+  return ret.getNumChildren() == 1 ? ret[0] : ret;
 }
 
 std::vector<std::unordered_map<std::string, Node>>
@@ -297,23 +268,14 @@ Node SolutionCounter::evaluateModuloConstraints(Node& conj, Node curr, Node& q)
       && (curr[0].getKind() == INTS_MODULUS
           || curr[1].getKind() == INTS_MODULUS))
   {
-//    Trace("smt-qe") << "evaluateModuloConstraints: calling on conj = " << conj
-//                    << " and curr = " << curr << std::endl;
-    //    std::unordered_set<Node> syms;
-    //    expr::getSymbols(curr, syms);
     if (!expr::hasBoundVar(curr))
     {
       SolverEngine se;
-//      se.assertFormula(nm->mkNode(EXISTS_EXACTLY, q[0], q[1], conj));
       se.assertFormula(nm->mkNode(EXISTS, q[0], conj));
-//      Trace("smt-qe") << "Asserted conj" << std::endl;
-//      Trace("smt-qe") << "Assertions: " << se.getAssertions() << std::endl;
       return nm->mkConst<bool>(se.checkSat(nm->mkNode(EXISTS, q[0], curr)) == Result::SAT);
     }
     else
     {
-//      Trace("smt-qe") << "evaluateModuloConstraints: returningn curr = " << curr
-//                      << std::endl;
       return curr;
     }
   }
@@ -403,8 +365,10 @@ bool SolutionCounter::countSolutions(
 
     TNode r_t = d_rewriter->rewrite(
         getTermAssignment(processed_t[j], assignment, variables));
-    evaluated_ord = evaluated_ord.substitute(q[0][0], r_t);
-
+    if (expr::hasBoundVar(evaluated_ord))
+    {
+      evaluated_ord = evaluated_ord.substitute(q[0][0], r_t);
+    }
     c[j] = (d_rewriter->rewrite(evaluated_ord) == trueNode) ? 1 : 0;
 
     if (j == 0) continue;
