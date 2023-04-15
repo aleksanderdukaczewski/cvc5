@@ -482,6 +482,10 @@ class SolverTest
     assertThrows(CVC5ApiException.class, () -> d_solver.mkFloatingPoint(3, 5, t2));
     assertThrows(CVC5ApiException.class, () -> d_solver.mkFloatingPoint(3, 5, t2));
 
+    assertEquals(d_solver.mkFloatingPoint(
+                     d_solver.mkBitVector(1), d_solver.mkBitVector(5), d_solver.mkBitVector(10)),
+        d_solver.mkFloatingPoint(5, 11, d_solver.mkBitVector(16)));
+
     Solver slv = new Solver();
     assertDoesNotThrow(() -> slv.mkFloatingPoint(3, 5, t1));
   }
@@ -1864,8 +1868,8 @@ class SolverTest
     // difficulty should map assertions to integer values
     for (Map.Entry<Term, Term> t : dmap.entrySet())
     {
-      assertTrue(t.getKey() == f0 || t.getKey() == f1);
-      assertTrue(t.getValue().getKind() == Kind.CONST_RATIONAL);
+      assertTrue(t.getKey().equals(f0) || t.getKey().equals(f1));
+      assertTrue(t.getValue().getKind() == Kind.CONST_INTEGER);
     }
   }
 

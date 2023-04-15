@@ -13,10 +13,14 @@
  * The cvc5 C++ API.
  */
 
-#include "cvc5_export.h"
+#include <cvc5/cvc5_export.h>
 
 #ifndef CVC5__API__CVC5_H
 #define CVC5__API__CVC5_H
+
+#include <cvc5/cvc5_kind.h>
+#include <cvc5/cvc5_sort_kind.h>
+#include <cvc5/cvc5_types.h>
 
 #include <functional>
 #include <map>
@@ -29,10 +33,6 @@
 #include <unordered_set>
 #include <variant>
 #include <vector>
-
-#include "api/cpp/cvc5_kind.h"
-#include "api/cpp/cvc5_sort_kind.h"
-#include "api/cpp/cvc5_types.h"
 
 namespace cvc5 {
 
@@ -134,7 +134,8 @@ class CVC5_EXPORT CVC5ApiRecoverableException : public CVC5ApiException
  * Exception for unsupported command arguments.
  * If thrown, API objects can still be used.
  */
-class CVC5_EXPORT CVC5ApiUnsupportedException : public CVC5ApiRecoverableException
+class CVC5_EXPORT CVC5ApiUnsupportedException
+    : public CVC5ApiRecoverableException
 {
  public:
   /**
@@ -2983,7 +2984,9 @@ class CVC5_EXPORT DriverOptions
 struct CVC5_EXPORT OptionInfo
 {
   /** Has no value information. */
-  struct VoidInfo {};
+  struct VoidInfo
+  {
+  };
   /** Basic information for option values. ``T`` can be ``bool`` or
    * ``std::string``. */
   template <typename T>
@@ -3825,18 +3828,32 @@ class CVC5_EXPORT Solver
   Term mkFloatingPointNegZero(uint32_t exp, uint32_t sig) const;
 
   /**
-   * Create a rounding mode constant.
+   * Create a rounding mode value.
    * @param rm The floating point rounding mode this constant represents.
+   * @return The rounding mode value.
    */
   Term mkRoundingMode(RoundingMode rm) const;
 
   /**
-   * Create a floating-point constant.
+   * Create a floating-point value from a bit-vector given in IEEE-754
+   * format.
    * @param exp Size of the exponent.
    * @param sig Size of the significand.
    * @param val Value of the floating-point constant as a bit-vector term.
+   * @return The floating-point value.
    */
-  Term mkFloatingPoint(uint32_t exp, uint32_t sig, Term val) const;
+  Term mkFloatingPoint(uint32_t exp, uint32_t sig, const Term& val) const;
+  /**
+   * Create a floating-point value from its three IEEE-754 bit-vector
+   * value components (sign bit, exponent, significand).
+   * @param sign The sign bit.
+   * @param exp  The bit-vector representing the exponent.
+   * @param sig The bit-vector representing the significand.
+   * @return The floating-point value.
+   */
+  Term mkFloatingPoint(const Term& sign,
+                       const Term& exp,
+                       const Term& sig) const;
 
   /**
    * Create a cardinality constraint for an uninterpreted sort.

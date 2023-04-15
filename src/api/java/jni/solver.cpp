@@ -13,7 +13,8 @@
  * The cvc5 Java API.
  */
 
-#include "api/cpp/cvc5.h"
+#include <cvc5/cvc5.h>
+
 #include "api_utilities.h"
 #include "io_github_cvc5_Solver.h"
 
@@ -1394,6 +1395,29 @@ JNIEXPORT jlong JNICALL Java_io_github_cvc5_Solver_mkFloatingPoint(
   Term* val = reinterpret_cast<Term*>(valPointer);
   Term* retPointer =
       new Term(solver->mkFloatingPoint((uint32_t)exp, (uint32_t)sig, *val));
+  return reinterpret_cast<jlong>(retPointer);
+  CVC5_JAVA_API_TRY_CATCH_END_RETURN(env, 0);
+}
+
+/*
+ * Class:     io_github_cvc5_Solver
+ * Method:    mkFloatingPoint
+ * Signature: (JJJJ)J
+ */
+JNIEXPORT jlong JNICALL
+Java_io_github_cvc5_Solver_mkFloatingPointX(JNIEnv* env,
+                                            jobject,
+                                            jlong pointer,
+                                            jlong signPointer,
+                                            jlong expPointer,
+                                            jlong sigPointer)
+{
+  CVC5_JAVA_API_TRY_CATCH_BEGIN;
+  Solver* solver = reinterpret_cast<Solver*>(pointer);
+  Term* sign = reinterpret_cast<Term*>(signPointer);
+  Term* exp = reinterpret_cast<Term*>(expPointer);
+  Term* sig = reinterpret_cast<Term*>(sigPointer);
+  Term* retPointer = new Term(solver->mkFloatingPoint(*sign, *exp, *sig));
   return reinterpret_cast<jlong>(retPointer);
   CVC5_JAVA_API_TRY_CATCH_END_RETURN(env, 0);
 }
