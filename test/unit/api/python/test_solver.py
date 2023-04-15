@@ -439,6 +439,14 @@ def test_mk_floating_point(solver):
     with pytest.raises(RuntimeError):
         solver.mkFloatingPoint(3, 5, t2)
 
+    sign = solver.mkBitVector(1)
+    exp = solver.mkBitVector(5)
+    sig = solver.mkBitVector(10)
+    bv = solver.mkBitVector(16)
+    a = solver.mkFloatingPoint(
+            sign, exp, sig)
+    assert solver.mkFloatingPoint(
+            sign, exp, sig) == solver.mkFloatingPoint(5, 11, bv)
     slv = cvc5.Solver()
     slv.mkFloatingPoint(3, 5, t1)
 
@@ -2777,7 +2785,7 @@ def test_get_difficulty3(solver):
   # difficulty should map assertions to integer values
   for key, value in dmap.items():
     assert key == f0 or key == f1
-    assert value.getKind() == Kind.CONST_RATIONAL
+    assert value.getKind() == Kind.CONST_INTEGER
 
 def test_get_model(solver):
     solver.setOption("produce-models", "true")
