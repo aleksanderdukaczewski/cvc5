@@ -2539,7 +2539,7 @@ set(regress_1_tests
   regress1/quantifiers/qcft-smtlib3dbc51.smt2
   regress1/quantifiers/qe.smt2
   regress1/quantifiers/qe-counted.smt2
-        regress1/quantifiers/qe-counted2.smt2
+  regress1/quantifiers/qe-counted2.smt2
   regress1/quantifiers/qe-partial.smt2
   regress1/quantifiers/qe-subtypes.smt2
   regress1/quantifiers/qid.smt2

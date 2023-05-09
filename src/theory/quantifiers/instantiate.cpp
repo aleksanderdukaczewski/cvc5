@@ -767,6 +767,8 @@ Node Instantiate::ensureType(Node n, TypeNode tn)
 
 InstLemmaList* Instantiate::getOrMkInstLemmaList(TNode q)
 {
+  Trace("inst-debug") << "getOrMkInstLemmaList: q = " << q << std::endl;
+
   NodeInstListMap::iterator it = d_insts.find(q);
   if (it != d_insts.end())
   {

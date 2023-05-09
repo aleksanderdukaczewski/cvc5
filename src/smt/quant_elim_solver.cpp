@@ -51,7 +51,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
   if (q.getKind() == EXISTS_EXACTLY)
   {
     Trace("smt-qe") << "QuantElimSolver: get qe counted" << std::endl;
-    Trace("smt-qe") << "Node q: " << q;
+    Trace("smt-qe") << "Node q: " << q << std::endl;
     NormalizationEngine ne(d_env.getRewriter());
     // Rewrite the expression
     Node rewrittenExpr = ne.rewriteQe(q[2]);
@@ -68,7 +68,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
 
     SolutionCounter sc(d_env.getRewriter());
     std::vector<Ordering> orderings = sc.computeOrderings(terms_s);
-    Trace("smt-qe") << "orderings: " << sc.familyToNodes(orderings)
+    Trace("smt-qe") << "orderings: " << Ordering::familyToNodes(orderings)
                     << std::endl;
 
     std::unordered_set<Node> moduli;
@@ -83,48 +83,71 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
     std::unordered_set<Node> Z;
     expr::getSymbols(q, Z);
     std::vector<Node> Z_vect(Z.begin(), Z.end());
-    Trace("smt-qe") << "Z_vect" << Z_vect << std::endl;
+    Trace("smt-qe") << "Variables (not bound)" << Z_vect << std::endl;
     std::vector<std::unordered_map<std::string, Node>> mappings =
         SolutionCounter::generateResidueClassMappings(m.getSignedInt(), Z_vect);
 
     Node falseNode = nm->mkConst<bool>(false);
     NodeBuilder ret(OR);
-    Trace("smt-qe") << "orderings: " << orderings.size() << std::endl;
-    Trace("smt-qe") << "mappings: " << mappings.size() << std::endl;
+    Trace("smt-qe") << "number of orderings: " << orderings.size() << std::endl;
+    Trace("smt-qe") << "number of mappings: " << mappings.size() << std::endl;
 
     for (auto& ord: orderings)
     {
       for (auto& residue_class : mappings)
       {
-        Ordering processed_ord = sc.makePairwiseNonEqual(ord);
-        int l = processed_ord.terms.size();
+        Ordering processed_ord = ord.makePairwiseNonEqual();
+        int l = processed_ord.d_terms.size();
         std::vector<int> p(l, 0), r(l, 0), c(l, 0);
         if (!sc.countSolutions(ord, residue_class, Z_vect, m, q, p, r, c))
         {
           continue;
         }
 
-        Node sum1 = nm->mkConstInt(0);
-//        Trace("smt-qe") << "processed_ord.terms: " << processed_ord.terms << std::endl;
+        NodeBuilder sum1(ADD);
         for (int j = 1; j < l; ++j)
         {
-          sum1 = nm->mkNode(
-              ADD,
-              sum1,
-              nm->mkNode(ADD,
-                         nm->mkConstInt(r[j]),
-                         nm->mkNode(MULT,
-                                    nm->mkConstInt(p[j]),
-                                    nm->mkNode(SUB,
-                                               processed_ord.terms[j],
-                                               processed_ord.terms[j - 1]))));
+          sum1 << nm->mkNode(ADD,
+                             nm->mkConstInt(r[j]),
+                             nm->mkNode(MULT,
+                                        nm->mkConstInt(p[j]),
+                                        nm->mkNode(SUB,
+                                                   processed_ord.d_terms[j],
+                                                   processed_ord.d_terms[j - 1])));
         }
 
-        Node sum2 = nm->mkConstInt(0);
+        NodeBuilder sum2(ADD);
         for (int j = 0; j < l; ++j)
         {
-          sum2 = nm->mkNode(ADD, sum2, nm->mkConstInt(c[j]));
+          sum2 << nm->mkConstInt(c[j]);
         }
+
+        Node sum1Node;
+        switch(sum1.getNumChildren())
+        {
+          case 0:
+            sum1Node = nm->mkConstInt(0);
+            break;
+          case 1:
+            sum1Node = sum1[0];
+            break;
+          default:
+            sum1Node = sum1;
+        }
+
+        Node sum2Node;
+        switch(sum2.getNumChildren())
+        {
+          case 0:
+            sum1Node = nm->mkConstInt(0);
+            break;
+          case 1:
+            sum2Node = sum2[0];
+            break;
+          default:
+            sum2Node = sum2;
+        }
+
         Node bigGamma =
             nm->mkNode(AND,
                        sc.assignResidueClass(residue_class, Z_vect, m),
@@ -136,7 +159,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
                 EQUAL,
                 nm->mkNode(MULT, nm->mkConstInt(m), q[1]),
                 nm->mkNode(
-                    ADD, sum1, nm->mkNode(MULT, nm->mkConstInt(m), sum2))));
+                    ADD, sum1Node, nm->mkNode(MULT, nm->mkConstInt(m), sum2Node))));
 
         if (rewrite(disjunct) != falseNode)
         {
@@ -209,6 +232,7 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       // Find the quantified formula corresponding to the quantifier elimination
       for (const Node& qinst : inst_qs)
       {
+        Trace("smt-qe") << "qinst: " << qinst << std::endl;
         // Should have the same attribute mark as above
         if (qinst.getNumChildren() == 3 && qinst[2] == n_attr)
         {
@@ -227,11 +251,12 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
         // note we do not convert to witness form here, since we could be
         // an internal subsolver (SolverEngine::isInternalSubsolver).
         ret = nm->mkAnd(insts);
-        Trace("smt-qe") << "QuantElimSolver returned : " << ret << std::endl;
         if (q.getKind() == EXISTS)
         {
           ret = rewrite(ret.negate());
         }
+        Trace("smt-qe") << "Initialized formula: "
+                        << ret << std::endl;
       }
       else
       {
@@ -248,6 +273,8 @@ Node QuantElimSolver::getQuantifierElimination(Node q,
       // make so that the returned formula does not involve arithmetic subtyping
       SubtypeElimNodeConverter senc;
       ret = senc.convert(ret);
+      Trace("smt-qe") << "Returning "
+                      << ret << std::endl;
       return ret;
     }
     // otherwise, just true/false

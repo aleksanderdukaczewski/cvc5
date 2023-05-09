@@ -17,7 +17,7 @@ Node NormalizationEngine::normalizeFormula(Node& q,
                                            std::unordered_set<Node>& terms_s)
 {
   NodeManager* nm = NodeManager::currentNM();
-  Node bv = q[0][0], bounded_expr = q[2];
+  Node bv = q[0], bounded_expr = q[2];
 
   // Find all coefficients of the bound variable in q.
   std::unordered_set<Node> s_coefs;
@@ -27,7 +27,7 @@ Node NormalizationEngine::normalizeFormula(Node& q,
   Integer k(1);
   for (const Node& coef : s_coefs)
   {
-    Integer coef_i = coef.getConst<Rational>().getNumerator().abs();
+    Integer coef_i = extractInteger(coef).abs();
     k = k.lcm(coef_i);
   }
 
@@ -120,6 +120,7 @@ Node NormalizationEngine::normalizeCoefficients(Node& n,
   else if (n.getKind() == EQUAL && n[0].getKind() == INTS_MODULUS
            && n[1].getKind() == CONST_INTEGER)
   {
+    Trace("smt-qe") << "normalizeCoefficients:  current n = " << n << std::endl;
     if (n[0][0] != bv)
     {
       return n;
@@ -228,31 +229,27 @@ Node NormalizationEngine::processModuloConstraint(Node& n)
   std::vector<std::unordered_map<std::string, Node>> residueClasses =
       SolutionCounter::generateResidueClassMappings(mod_rhs, vars_v);
 
-  Node ret = falseNode;
+  std::vector<Node> disjuncts;
   for (auto& r : residueClasses)
   {
-    Node evaluated_term = SolutionCounter::getTermAssignment(n, r, vars_v);
+    Node evaluated_term = SolutionCounter::substituteAllVars(n, r, vars_v);
     evaluated_term = d_rewriter->rewrite(evaluated_term);
     if (d_rewriter->rewrite(evaluated_term) == falseNode)
     {
       continue;
     }
 
-    Node local_disjunct = trueNode;
+    std::vector<Node> conjuncts;
     for (const auto& var : variables)
     {
       Node temp = nm->mkNode(
           EQUAL, nm->mkNode(INTS_MODULUS, var, modulus), r.at(var.toString()));
-      local_disjunct = local_disjunct == trueNode
-                           ? temp
-                           : nm->mkNode(AND, local_disjunct, temp);
+      conjuncts.push_back(temp);
     }
-
-    ret = (ret == falseNode) ? local_disjunct
-                             : nm->mkNode(OR, ret, local_disjunct);
+    disjuncts.push_back(nm->mkAnd(conjuncts));
   }
 
-  return ret;
+  return nm->mkOr(disjuncts);
 }
 
 Node NormalizationEngine::simplifyModuloConstraints(Node n)

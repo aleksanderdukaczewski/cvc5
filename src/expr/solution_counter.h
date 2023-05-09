@@ -11,15 +11,37 @@ using namespace cvc5::internal::kind;
 
 namespace cvc5::internal {
 
-struct Ordering
+class Ordering
 {
-  std::vector<Node> terms;
-  std::vector<Kind_t> rels;
-  /**
+  public:
+   Ordering(std::vector<Node> d_terms, std::vector<Kind_t> d_rels);
+   ~Ordering();
+   /**
    * Convert the ordering to an equivalent node representation
    * @return node representing the ordering
    */
-  Node getNode();
+   Node getNode();
+   /**
+    * Using a local SolverEngine instance, check if ord is satisfiable.
+    * @param ord Ordering to be checked for satisfiability
+    * @return true if ord is satisfiable else false
+    */
+   bool isSatisfiable();
+   /**
+   * Convert all orderings in the vector fam to nodes
+   * @param fam vector of Ordering objects to be converted to nodes
+   * @return vector of nodes equivalent to fam
+    */
+   static std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
+   /**
+   * Given an ordering ord, construct a new ordering with pairwise non-equal terms from ord and LT as all every relation.
+   * @param ord the ordering under investigation
+   * @return ordering where all terms are pairwise non-equal
+    */
+   Ordering makePairwiseNonEqual();
+
+   std::vector<Node> d_terms;
+   std::vector<Kind_t> d_rels;
 };
 
 class SolutionCounter
@@ -28,12 +50,6 @@ class SolutionCounter
   SolutionCounter(theory::Rewriter* d_rewriter);
   ~SolutionCounter();
 
-  /**
-   * Convert all orderings in the vector fam to nodes
-   * @param fam vector of Ordering objects to be converted to nodes
-   * @return vector of nodes equivalent to fam
-   */
-  std::vector<Node> familyToNodes(std::vector<Ordering>& fam);
   /**
    * Using a dynamic programming algorithm, compute the vector of all satisfiable orderings on nodes from the vector terms.
    * @param terms_s
@@ -66,18 +82,18 @@ class SolutionCounter
    * @param m lcm of all moduli occurring in the investigated formula
    * @return conjunction of assignments of modulo classes to variables
    */
-  Node assignResidueClass(std::unordered_map<std::string, Node> assignment,
+  static Node assignResidueClass(std::unordered_map<std::string, Node> assignment,
                           std::vector<Node> variables,
                           Integer m);
   /**
    * Given a map assignment representing assigment of residue classes to variables,
    * use NodeTemplate::substitute to substitute all variables occurring in n with their residue classes.
    * @param n A term without a bound variable
-   * @param assignment A map with assignment of residue classes to variables
+   * @param assignment A map with assignment of residue classes to variables generated with generateResidueClassMappings
    * @param variables Vector of nodes each representing a variable occurring in the main formula
    * @return n with residue classes substituted for variables
    */
-  static Node getTermAssignment(Node n,
+  static Node substituteAllVars(Node n,
                          std::unordered_map<std::string, Node>& assignment,
                          std::vector<Node>& variables);
   /**
@@ -102,12 +118,7 @@ class SolutionCounter
       std::vector<int>& p,
       std::vector<int>& r,
       std::vector<int>& c);
-  /**
-   * Given an ordering ord, construct a new ordering with pairwise non-equal terms from ord and LT as all every relation.
-   * @param ord the ordering under investigation
-   * @return ordering where all terms are pairwise non-equal
-   */
-  Ordering makePairwiseNonEqual(Ordering& ord);
+
   /**
    * As in lemma 3 of the procedure, calculate a boolean combination of simple modulo constraints
    * on the bound variable that does not introduce any new moduli by substituting other modulo constraints
@@ -121,7 +132,7 @@ class SolutionCounter
    * @return expression equivalent to q after substituting inequalities and modulo
    *         constraints where q's bound variable does not occur with their truth values.
    */
-  Node evaluateOrdering(Node &q, Ordering& ord, Node& segment, std::unordered_map<std::string, Node>& assignment, std::vector<Node>& variables, Integer& m);
+  static Node evaluateFormula(Node &q, Ordering& ord, Node& segment, std::unordered_map<std::string, Node>& assignment, std::vector<Node>& variables, Integer& m);
 
  private:
   /**
@@ -135,12 +146,7 @@ class SolutionCounter
                                       std::vector<Ordering>& prev_fam,
                                       std::vector<Node>& terms,
                                       std::unordered_set<Node>& cache);
-  /**
-   * Using a local SolverEngine instance, check if ord is satisfiable.
-   * @param ord Ordering to be checked for satisfiability
-   * @return true if ord is satisfiable else false
-   */
-  bool satisfiableOrdering(Ordering& ord);
+
   /**
    * Using a recursive depth-first solution, evaluate the truth values of all modulo constraints in
    * node curr where the bound variable doesn't occur, and
@@ -149,39 +155,38 @@ class SolutionCounter
    * @param q Node representing the original quantified formula
    * @return Node representing curr after substituting all modulo constraints with their truth values asserted by conj
    */
-  Node evaluateModuloConstraints(Node& conj, Node curr, Node& q);
+  static Node evaluateModuloConstraints(Node& conj, Node curr, Node& q);
   /**
    * Using a recursive depth-first solution, evaluate the truth values of all inequalities in
    * node curr using the node conj representing the conjunction of a segment and big gamma
    * (conjunction of ordering and assignment of residue classes to variables)
    * @param conj Conjunction of a segment and big gamma (conjunction of ordering and assignment of residue classes to variables)
    * @param curr The node currently under investigation
-   * @param q Node representing the original quantified formula
+   * @param bv Node representing bound variable of the original quantified formula
    * @return Node representing curr after substituting all inequalities with their truth values asserted by conj
    */
-  Node evaluateInequalities(Node& conj, Node curr, Node& q);
+  static Node evaluateInequalities(Node& conj, Node curr, Node& bv);
   /**
    * Recursive function to generate combinations of numbers from
    * 0 to r-1 with repetition using a depth-first method.
-   * @param assignment Currently generated vector of int representing the assignment to variable classes.
+   * @param combination Currently generated vector of int representing the combination to variable classes.
    * @param combinations The reference to vector containing
    * @param i The current index for inserting a number into the combination
    * @param target_length The range of numbers used to generate the combinations.
-   * @param start The index in assignment to start insertions from
-   * @param range The index in assignment to end insertions at
+   * @param start The index in combination to start insertions from
+   * @param range The index in combination to end insertions at
    */
-  static void getCombinationsRec(std::vector<int> assignment,
+  static void getCombinationsRec(std::vector<int> combination,
                                  std::vector<std::vector<int>>& combinations,
                                  int i,
                                  int target_length,
                                  int range);
-
   /**
    * Given a TNode n of kind CONST_INTEGER, extract int value from it
    * @param n node of kind CONST_INTEGER
    * @return integer stored in the node.
    */
-  int extractInt(TNode& n);
+  static int extractInt(TNode& n);
 
   /**
    * A pointer to a Rewriter object needed by the NormalizationEngine to

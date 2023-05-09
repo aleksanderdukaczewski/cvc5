@@ -50,6 +50,9 @@ class Smt2TermParser
    * ((<symbol> <sort>)*)
    */
   std::vector<std::pair<std::string, Sort>> parseSortedVarList();
+
+  std::pair<std::string, Sort> parseSortedVar();
+
   /**
    * Parses an SMT-LIB symbolic expr. A symbolic expression has the syntax:
    * <sexpr> := (<sexpr>*) | <symbol> | <spec_constant>

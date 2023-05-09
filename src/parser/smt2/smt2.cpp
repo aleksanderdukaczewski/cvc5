@@ -1128,6 +1128,7 @@ Term Smt2State::parseOpToExpr(ParseOp& p)
 
 Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
 {
+  Trace("parser") << "QUAL IDENTIFIER?" << std::endl;
   bool isBuiltinOperator = false;
   // the builtin kind of the overall return expression
   Kind kind = NULL_TERM;

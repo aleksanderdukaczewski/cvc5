@@ -1234,20 +1234,20 @@ termNonVariable[cvc5::Term& expr, cvc5::Term& expr2]
     }
     boundVarList[bvl]
     term[f, f2]
-    { 
-      args.push_back(bvl); 
+    {
+      args.push_back(bvl);
 
       args.push_back(f);
       if(! f2.isNull()){
         args.push_back(f2);
-      } 
+      }
     }
     term[f, f2] RPAREN_TOK
     {
       args.push_back(f);
       if(! f2.isNull()){
         args.push_back(f2);
-      } 
+      }
       expr = MK_TERM(kind, args);
       PARSER_STATE->popScope();
     }
@@ -1816,7 +1816,7 @@ boundVarSingle[cvc5::Term& expr]
         sortSymbol[t] RPAREN_TOK
        {
           cvc5::Term bv = PARSER_STATE->bindBoundVar(name,t);
-          expr = MK_TERM(cvc5::VARIABLE, bv);
+          expr = MK_TERM(cvc5::VARIABLE_LIST, bv);
        }
      ;
 

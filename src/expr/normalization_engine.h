@@ -37,7 +37,7 @@ class NormalizationEngine
    * @return an equivalent formula where all inequalities and equalities
    *         have been rewritten into terms of the form t < 0
    */
-  Node rewriteQe(Node n);
+  static Node rewriteQe(Node n);
 
  private:
   /**
@@ -69,7 +69,7 @@ class NormalizationEngine
    * @param bv_coef reference to an Integer object storing the bound variable's coefficient
    * @return node n after removing the bound variable.
    */
-  Node removeBoundVariable(Node n, Node bv, Integer& bv_coef);
+  static Node removeBoundVariable(Node n, Node bv, Integer& bv_coef);
   /**
    * Given expression n and a variable var, search for var's coefficients
    * in nodes of the form (var), (-var), (x*var), (var*x)
@@ -77,7 +77,7 @@ class NormalizationEngine
    * @param var the variable node whose coefficients the function looks for
    * @param s_coefs the set which coefficients are added to
    */
-  void getCoefficients(Node& n, Node& var, std::unordered_set<Node>& s_coefs);
+  static void getCoefficients(Node& n, Node& var, std::unordered_set<Node>& s_coefs);
   /**
    * Helper function for simplifyModuloCostraints. Given a modulo constraint n process it
    * into an equivalent combination of simple modulo constraints that do not
@@ -93,7 +93,7 @@ class NormalizationEngine
    * @param n node of kind CONST_INTEGER
    * @return integer stored in the node.
    */
-  Integer extractInteger(Node n);
+  static Integer extractInteger(Node n);
 
   /**
    * A pointer to a Rewriter object needed by the NormalizationEngine to

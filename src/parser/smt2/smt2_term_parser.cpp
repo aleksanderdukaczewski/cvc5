@@ -206,16 +206,26 @@ Term Smt2TermParser::parseTerm()
             {
               // if it is a closure, immediately read the bound variable list
               d_state.pushScope();
-              std::vector<std::pair<std::string, Sort>> sortedVarNames =
-                  parseSortedVarList();
-              if (sortedVarNames.empty())
+              if (op.d_name == "exists-exactly")
               {
-                d_lex.parseError("Expected non-empty sorted variable list");
+                std::pair<std::string, Sort> sortedVar = parseSortedVar();
+                Term vl = d_state.bindBoundVar(sortedVar.first, sortedVar.second);
+                args.push_back(vl);
+                xstack.emplace_back(ParseCtx::CLOSURE_NEXT_ARG);
               }
-              std::vector<Term> vs = d_state.bindBoundVars(sortedVarNames);
-              Term vl = slv->mkTerm(VARIABLE_LIST, vs);
-              args.push_back(vl);
-              xstack.emplace_back(ParseCtx::CLOSURE_NEXT_ARG);
+              else
+              {
+                std::vector<std::pair<std::string, Sort>> sortedVarNames =
+                    parseSortedVarList();
+                if (sortedVarNames.empty())
+                {
+                  d_lex.parseError("Expected non-empty sorted variable list");
+                }
+                std::vector<Term> vs = d_state.bindBoundVars(sortedVarNames);
+                Term vl = slv->mkTerm(VARIABLE_LIST, vs);
+                args.push_back(vl);
+                xstack.emplace_back(ParseCtx::CLOSURE_NEXT_ARG);
+              }
             }
             else
             {
@@ -826,6 +836,16 @@ std::vector<std::pair<std::string, Sort>> Smt2TermParser::parseSortedVarList()
     d_lex.eatToken(Token::RPAREN_TOK);
   }
   return varList;
+}
+
+std::pair<std::string, Sort> Smt2TermParser::parseSortedVar()
+{
+  d_lex.eatToken(Token::LPAREN_TOK);
+  std::string name = parseSymbol(CHECK_NONE, SYM_VARIABLE);
+  Sort t = parseSort();
+  d_lex.eatToken(Token::RPAREN_TOK);
+
+  return std::make_pair(name, t);
 }
 
 std::string Smt2TermParser::parseSymbol(DeclarationCheck check, SymbolType type)

@@ -33,6 +33,7 @@ TypeNode QuantifierTypeRule::computeType(NodeManager* nodeManager,
   {
     if (n[0].getType(check) != nodeManager->boundVarListType())
     {
+      Trace("smt-qe") << "n = " << n << std::endl;
       throw TypeCheckingExceptionPrivate(
           n, "first argument of quantifier is not bound var list");
     }
