@@ -29,7 +29,7 @@ Node Ordering::getNode()
   }
   else
   {
-    NodeBuilder ret(AND);
+    NodeBuilder ret(Kind::AND);
     for (int i = 1; i < d_terms.size(); ++i)
     {
       Node RHS = nm->mkNode(d_rels[i - 1], d_terms[i - 1], d_terms[i]);
@@ -90,7 +90,7 @@ std::vector<Ordering> SolutionCounter::computeFamily(
       for (int i = 1; i <= j - 1; ++i)
       {
         Ordering new_ord = ord;
-        new_ord.d_rels.insert(new_ord.d_rels.begin() + i - 1, EQUAL);
+        new_ord.d_rels.insert(new_ord.d_rels.begin() + i - 1, Kind::EQUAL);
         new_ord.d_terms.insert(new_ord.d_terms.begin() + i - 1, curr_term);
         // Equivalent ordering may have been created, check in cache
         Node rewritten_new_ord = d_rewriter->rewrite(new_ord.getNode());
@@ -102,7 +102,7 @@ std::vector<Ordering> SolutionCounter::computeFamily(
         }
 
         new_ord = ord;
-        new_ord.d_rels.insert(new_ord.d_rels.begin() + i - 1, LT);
+        new_ord.d_rels.insert(new_ord.d_rels.begin() + i - 1, Kind::LT);
         new_ord.d_terms.insert(new_ord.d_terms.begin() + i - 1, curr_term);
         if (new_ord.isSatisfiable())
         {
@@ -110,7 +110,7 @@ std::vector<Ordering> SolutionCounter::computeFamily(
         }
 
         new_ord = ord;
-        new_ord.d_rels.insert(new_ord.d_rels.begin() + i - 1, LT);
+        new_ord.d_rels.insert(new_ord.d_rels.begin() + i - 1, Kind::LT);
         new_ord.d_terms.insert(new_ord.d_terms.begin() + i, curr_term);
         if (new_ord.isSatisfiable())
         {
@@ -148,7 +148,7 @@ Ordering Ordering::makePairwiseNonEqual()
   new_ord.d_terms.push_back(d_terms[0]);
   for (int i = 1; i < d_terms.size(); ++i)
   {
-    if (d_rels[i - 1] != EQUAL)
+    if (d_rels[i - 1] != Kind::EQUAL)
     {
       new_ord.d_rels.push_back(d_rels[i - 1]);
       new_ord.d_terms.push_back(d_terms[i]);
@@ -164,17 +164,17 @@ std::vector<Node> SolutionCounter::getSegments(Node& bv, Ordering& ord)
   NodeManager* nm = NodeManager::currentNM();
   Ordering new_ord = ord.makePairwiseNonEqual();
 
-  segments.push_back(nm->mkNode(LT, bv, new_ord.d_terms[0]));
-  segments.push_back(nm->mkNode(EQUAL, bv, new_ord.d_terms[0]));
+  segments.push_back(nm->mkNode(Kind::LT, bv, new_ord.d_terms[0]));
+  segments.push_back(nm->mkNode(Kind::EQUAL, bv, new_ord.d_terms[0]));
   for (int i = 1; i < new_ord.d_terms.size(); ++i)
   {
-    segments.push_back(nm->mkNode(AND,
-                                  nm->mkNode(LT, new_ord.d_terms[i - 1], bv),
-                                  nm->mkNode(LT, bv, new_ord.d_terms[i])));
-    segments.push_back(nm->mkNode(EQUAL, bv, new_ord.d_terms[i]));
+    segments.push_back(nm->mkNode(Kind::AND,
+                                  nm->mkNode(Kind::LT, new_ord.d_terms[i - 1], bv),
+                                  nm->mkNode(Kind::LT, bv, new_ord.d_terms[i])));
+    segments.push_back(nm->mkNode(Kind::EQUAL, bv, new_ord.d_terms[i]));
   }
   segments.push_back(
-      nm->mkNode(LT, new_ord.d_terms[new_ord.d_terms.size() - 1], bv));
+      nm->mkNode(Kind::LT, new_ord.d_terms[new_ord.d_terms.size() - 1], bv));
 
   return segments;
 }
@@ -185,14 +185,14 @@ Node SolutionCounter::assignResidueClass(
     Integer m)
 {
   NodeManager* nm = NodeManager::currentNM();
-  NodeBuilder ret(AND);
+  NodeBuilder ret(Kind::AND);
   for (Node& var : variables)
   {
     Node assigned_var = assignment.at(var.toString());
     Node modulo_constraint = nm->mkNode(
-        EQUAL,
-        nm->mkNode(INTS_MODULUS, assigned_var, nm->mkConstInt(Rational(m))),
-        nm->mkNode(INTS_MODULUS, var, nm->mkConstInt(Rational(m))));
+        Kind::EQUAL,
+        nm->mkNode(Kind::INTS_MODULUS, assigned_var, nm->mkConstInt(Rational(m))),
+        nm->mkNode(Kind::INTS_MODULUS, var, nm->mkConstInt(Rational(m))));
     ret << modulo_constraint;
   }
 
@@ -261,13 +261,13 @@ Node SolutionCounter::evaluateInequalities(Node& conj, Node curr, Node& bv)
 
   std::vector<Node> bvl;
   bvl.push_back(bv);
-  Node bvlNode = nm->mkNode(BOUND_VAR_LIST, bvl);
+  Node bvlNode = nm->mkNode(Kind::BOUND_VAR_LIST, bvl);
 
-  if (curr.getKind() == LT)
+  if (curr.getKind() == Kind::LT)
   {
-    Node boundConj = nm->mkNode(EXISTS, bvlNode, conj);
+    Node boundConj = nm->mkNode(Kind::EXISTS, bvlNode, conj);
 
-    Result isSat = se.checkSat(nm->mkNode(AND, boundConj, nm->mkNode(EXISTS, bvlNode, curr)));
+    Result isSat = se.checkSat(nm->mkNode(Kind::AND, boundConj, nm->mkNode(Kind::EXISTS, bvlNode, curr)));
 
     Node ret = nm->mkConst<bool>(isSat == Result::SAT);
     return ret;
@@ -287,18 +287,18 @@ Node SolutionCounter::evaluateModuloConstraints(Node& conj, Node curr, Node& q)
   NodeManager* nm = NodeManager::currentNM();
   Node bv = q[0];
 
-  if (curr.getKind() == EQUAL
-      && (curr[0].getKind() == INTS_MODULUS
-          || curr[1].getKind() == INTS_MODULUS))
+  if (curr.getKind() == Kind::EQUAL
+      && (curr[0].getKind() == Kind::INTS_MODULUS
+          || curr[1].getKind() == Kind::INTS_MODULUS))
   {
     if (!expr::hasBoundVar(curr))
     {
       SolverEngine se;
       std::vector<Node> bvl;
       bvl.push_back(q[0]);
-      Node bvlNode = nm->mkNode(kind::BOUND_VAR_LIST, bvl);
-      se.assertFormula(nm->mkNode(EXISTS, bvlNode, conj));
-      return nm->mkConst<bool>(se.checkSat(nm->mkNode(EXISTS, bvlNode, curr)) == Result::SAT);
+      Node bvlNode = nm->mkNode(Kind::BOUND_VAR_LIST, bvl);
+      se.assertFormula(nm->mkNode(Kind::EXISTS, bvlNode, conj));
+      return nm->mkConst<bool>(se.checkSat(nm->mkNode(Kind::EXISTS, bvlNode, curr)) == Result::SAT);
     }
     else
     {
@@ -328,9 +328,9 @@ Node SolutionCounter::evaluateFormula(
 {
   NodeManager* nm = NodeManager::currentNM();
   Node bigGamma = nm->mkNode(
-      AND, assignResidueClass(assignment, variables, m), ord.getNode());
+      Kind::AND, assignResidueClass(assignment, variables, m), ord.getNode());
   Node conj = nm->mkNode(
-      AND, segment, bigGamma);
+      Kind::AND, segment, bigGamma);
 
   Node bv = q[0];
   Node ret = evaluateInequalities(conj, q[2], bv);
@@ -374,17 +374,17 @@ bool SolutionCounter::countSolutions(
   int l = processed_t.size();
   int m_int = m.getSignedInt();
 
-  std::pair<Node, Node> segs(nm->mkNode(LT, q[0], processed_t[0]),
-                             nm->mkNode(LT, processed_t[l - 1], q[0]));
+  std::pair<Node, Node> segs(nm->mkNode(Kind::LT, q[0], processed_t[0]),
+                             nm->mkNode(Kind::LT, processed_t[l - 1], q[0]));
 
 
   std::vector<Node> bvl;
   bvl.push_back(q[0]);
 
-  Node bvlNode = nm->mkNode(kind::BOUND_VAR_LIST, bvl);
-  Node ord1 = nm->mkNode(EXISTS, bvlNode,
+  Node bvlNode = nm->mkNode(Kind::BOUND_VAR_LIST, bvl);
+  Node ord1 = nm->mkNode(Kind::EXISTS, bvlNode,
                  evaluateFormula(q, ord, segs.first, assignment, variables, m));
-  Node ord2 = nm->mkNode(EXISTS, bvlNode,
+  Node ord2 = nm->mkNode(Kind::EXISTS, bvlNode,
       evaluateFormula(q, ord, segs.second, assignment, variables, m));
 
   if (se.checkSat(ord1) == Result::SAT || se.checkSat(ord2) == Result::SAT)
@@ -394,7 +394,7 @@ bool SolutionCounter::countSolutions(
 
   for (int j = 0; j < l; ++j)
   {
-    Node seg = nm->mkNode(EQUAL, q[0], processed_t[j]);
+    Node seg = nm->mkNode(Kind::EQUAL, q[0], processed_t[j]);
     Node evaluated_ord = evaluateFormula(q, ord, seg, assignment, variables, m);
 
     TNode r_t = d_rewriter->rewrite(
@@ -407,9 +407,9 @@ bool SolutionCounter::countSolutions(
 
     if (j == 0) continue;
 
-    seg = nm->mkNode(AND,
-                     nm->mkNode(LT, processed_t[j - 1], q[0]),
-                     nm->mkNode(LT, q[0], processed_t[j]));
+    seg = nm->mkNode(Kind::AND,
+                     nm->mkNode(Kind::LT, processed_t[j - 1], q[0]),
+                     nm->mkNode(Kind::LT, q[0], processed_t[j]));
 
     if (expr::hasBoundVar(evaluated_ord))
     {

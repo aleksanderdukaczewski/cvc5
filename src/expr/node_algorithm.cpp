@@ -831,10 +831,10 @@ bool hasAbstractSubterm(TNode n)
 
 void getModuli(Node n, std::unordered_set<Node>& s_mod)
 {
-  if (n.getKind() == kind::EQUAL && n[1].getKind() == kind::CONST_INTEGER
+  if (n.getKind() == Kind::EQUAL && n[1].getKind() == Kind::CONST_INTEGER
       && n[1].getConst<Rational>().isZero()
-      && n[0].getKind() == kind::INTS_MODULUS
-      && n[0][1].getKind() == kind::CONST_INTEGER)
+      && n[0].getKind() == Kind::INTS_MODULUS
+      && n[0][1].getKind() == Kind::CONST_INTEGER)
   {
     s_mod.insert(n[0][1]);
   }

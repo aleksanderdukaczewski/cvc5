@@ -178,7 +178,7 @@ bool TheoryQuantifiers::preNotifyFact(
   {
     getQuantifiersEngine()->assertQuantifier(atom, polarity);
   }
-  else if (k != EXISTS_EXACTLY)
+  else if (k != Kind::EXISTS_EXACTLY)
   {
     Unhandled() << "Unexpected fact " << fact;
   }

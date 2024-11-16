@@ -73,7 +73,7 @@ bool NestedQe::hasNestedQuantification(Node q)
 // TO DO
 bool NestedQe::getNestedCountedQuantification(Node q, std::unordered_set<Node>& nqs)
 {
-  expr::getKindSubterms(q[2], kind::EXISTS_EXACTLY, true, nqs);
+  expr::getKindSubterms(q[2], Kind::EXISTS_EXACTLY, true, nqs);
   return !nqs.empty();
 }
 // TO DO
@@ -90,11 +90,11 @@ Node NestedQe::doNestedQe(Env& env, Node q, bool keepTopLevel)
   Node qOrig = q;
   bool inputExists = false;
 
-  if (q.getKind() == kind::EXISTS_EXACTLY)
+  if (q.getKind() == Kind::EXISTS_EXACTLY)
   {
     return qOrig;
   }
-  else if (q.getKind() == kind::EXISTS)
+  else if (q.getKind() == Kind::EXISTS)
   {
     q = nm->mkNode(Kind::FORALL, q[0], q[1].negate());
     inputExists = true;

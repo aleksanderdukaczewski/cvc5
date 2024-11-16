@@ -203,6 +203,7 @@ Term Smt2TermParser::parseTerm()
             ParseOp op;
             op.d_name = tokenStrToSymbol(tok);
             std::vector<Term> args;
+            std::vector<std::pair<std::string, Sort>> sortedVarNames;
             if (d_state.isClosure(op.d_name))
             {
               // if it is a closure, immediately read the bound variable list
@@ -216,14 +217,13 @@ Term Smt2TermParser::parseTerm()
               }
               else
               {
-                std::vector<std::pair<std::string, Sort>> sortedVarNames =
-                    parseSortedVarList();
+                sortedVarNames = parseSortedVarList();
                 if (sortedVarNames.empty())
                 {
                   d_lex.parseError("Expected non-empty sorted variable list");
                 }
                 std::vector<Term> vs = d_state.bindBoundVars(sortedVarNames);
-                Term vl = slv->mkTerm(VARIABLE_LIST, vs);
+                Term vl = tm.mkTerm(Kind::VARIABLE_LIST, vs);
                 args.push_back(vl);
                 xstack.emplace_back(ParseCtx::CLOSURE_NEXT_ARG);
               }

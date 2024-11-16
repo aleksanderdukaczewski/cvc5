@@ -87,24 +87,34 @@ TypeNode QuantifierTypeRule::computeType(NodeManager* nodeManager,
   return nodeManager->booleanType();
 }
 
+TypeNode CountedQuantifierTypeRule::preComputeType(NodeManager* nm,
+                                                        TNode n)
+{
+  return nm->boundVarListType();
+}
 TypeNode CountedQuantifierTypeRule::computeType(NodeManager* nodeManager,
                                                      TNode n,
                                                      bool check,
                                                      std::ostream* errOut)
 {
   Trace("typecheck-q") << "type check for fa " << n << std::endl;
-  Assert(n.getKind() == kind::EXISTS_EXACTLY && n.getNumChildren() > 0);
+  Assert(n.getKind() == Kind::EXISTS_EXACTLY && n.getNumChildren() > 0);
 
   return nodeManager->booleanType();
 }
 
+TypeNode QeSegmentTypeRule::preComputeType(NodeManager* nm,
+                                                        TNode n)
+{
+  return nm->boundVarListType();
+}
 TypeNode QeSegmentTypeRule::computeType(NodeManager* nodeManager,
                                                 TNode n,
                                                 bool check,
                                                 std::ostream* errOut)
 {
   Trace("typecheck-q") << "type check for qe_segment " << n << std::endl;
-  Assert(n.getKind() == kind::QE_SEGMENT && n.getNumChildren() > 0);
+  Assert(n.getKind() == Kind::QE_SEGMENT && n.getNumChildren() > 0);
 
   return nodeManager->booleanType();
 }
